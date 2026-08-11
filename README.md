@@ -75,7 +75,24 @@ artifacts/load/{run-id}/    summary.json, meta.json
 ```
 
 `meta.json` records the timestamp, git SHA, database engine, and run type — enough to
-compare runs over time, which is what the planned QA agent (phase 7) consumes.
+compare runs over time, which is what the QA agent consumes.
+
+## QA agent
+
+```bash
+make qa-report
+```
+
+Reads the accumulated run history and writes `qa-suggestions/{run-id}.md`, reporting:
+
+- **New failures** — tests that used to pass and started failing (regressions)
+- **Flaky tests** — same test with different outcomes across runs
+- **Latency regressions** — current p95 against the median of previous runs (median as
+  baseline, so one isolated spike doesn't move the reference)
+
+The analysis is deterministic and needs no API key. If `ANTHROPIC_API_KEY` is set, the
+findings are additionally sent to Claude for prioritized, actionable suggestions; without
+it, the agent still produces the full report.
 
 All targets fail with a non-zero exit code when tests fail — safe to wire into CI as-is.
 
@@ -87,6 +104,7 @@ frontend-vue/        Vue 3 SPA (Dockerfile: node build stage → nginx)
 frontend-react/      React 18 SPA (same multi-stage pattern)
 tests/e2e/           Playwright specs and config
 tests/load/          k6 scenarios
+qa-agent/            Historical artifact analysis (TypeScript, optional LLM layer)
 artifacts/           Test run outputs (gitignored; stable contract for tooling)
 docker-compose.yml   Single compose file, runners behind profiles
 Makefile             Entry point for every workflow — local, CI, and VM use the same targets
@@ -103,7 +121,7 @@ Makefile             Entry point for every workflow — local, CI, and VM use th
 | 4 | CI on GitHub Actions | ✅ Done |
 | 5 | PostgreSQL in CI matrix, React frontend, k6 load scenarios | ✅ Done |
 | 6 | Remote VM (Hetzner) with scheduled runs | Pending |
-| 7 | AI QA agent consuming historical test artifacts | Pending |
+| 7 | QA agent consuming historical test artifacts | ✅ Done |
 
 ## Notes
 

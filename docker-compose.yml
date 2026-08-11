@@ -142,6 +142,24 @@ services:
     # Sin `playwright install`: los browsers ya vienen en la imagen oficial
     command: ["bash", "-c", "npm ci --loglevel=error && npx playwright test"]
 
+  qa-agent:
+    profiles: [qa]
+    build: ./qa-agent
+    volumes:
+      - ./artifacts:/artifacts:ro
+      - ./qa-suggestions:/qa-suggestions
+    environment:
+      RUN_ID: ${RUN_ID:-dev}
+      # Opcional: sin API key el análisis determinista corre igual
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+
+  qa-agent-test:
+    profiles: [unit]
+    build:
+      context: ./qa-agent
+      target: base
+    command: ["npx", "vitest", "run"]
+
   k6-runner:
     profiles: [load]
     image: grafana/k6:2.2.0

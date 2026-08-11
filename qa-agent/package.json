@@ -1,0 +1,16 @@
+{
+  "name": "scalingqa-qa-agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:unit": "vitest",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "tsx": "4.20.6"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}

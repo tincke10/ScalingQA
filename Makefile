@@ -21,6 +21,7 @@ test-matrix: test-mysql test-pgsql
 test-unit:
 	docker compose --profile unit run --build --rm frontend-vue-test
 	docker compose --profile unit run --build --rm frontend-react-test
+	docker compose --profile unit run --build --rm qa-agent-test
 
 test-e2e:
 	docker compose up -d --wait --build laravel-app frontend-vue
@@ -31,6 +32,10 @@ test-load:
 	docker compose up -d --wait laravel-app
 	docker compose exec laravel-app php artisan migrate:fresh --seed --force
 	RUN_ID=$(RUN_ID) GIT_SHA=$(GIT_SHA) docker compose --profile load up --exit-code-from k6-runner k6-runner
+
+# Analiza el historial de artefactos y escribe el informe en qa-suggestions/
+qa-report:
+	RUN_ID=$(RUN_ID) docker compose --profile qa run --build --rm qa-agent
 
 # Corre todo; make aborta en el primer target que falle
 test-all: test-matrix test-unit test-e2e
