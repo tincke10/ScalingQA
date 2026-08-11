@@ -167,7 +167,11 @@ project-root/
   - Escribe en `artifacts/e2e/<run-id>/`.
 - **k6-runner** — `profiles: [load]`
   - `grafana/k6` con tag exacto clavado (nunca `latest`, coherente con la política de versiones).
-  - Comando incluye `--summary-export` hacia `artifacts/load/<run-id>/`.
+  - Escribe `summary.json` + `meta.json` en `artifacts/load/<run-id>/` vía `handleSummary`.
+  - **Gotcha**: k6 no crea el directorio de salida y NO falla si `handleSummary` no puede escribir
+    (sale 0 igual). El comando hace `mkdir -p` antes y `test -f` de cada archivo después, para que
+    un artefacto faltante sea un fallo real y no un verde mentiroso.
+  - Los `thresholds` (p95, tasa de errores) son el criterio de pass/fail: si no se cumplen, k6 sale ≠ 0.
 - **frontend-vue-test / frontend-react-test** — `profiles: [unit]`
   - Mismo Dockerfile que el frontend pero con `build.target: base` (el stage de Node con deps + código, ANTES del build de prod: los tests no deben exigir que el build compile).
   - Comando: `npm run test`.

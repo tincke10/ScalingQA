@@ -10,10 +10,10 @@ A reproducible, Docker-based testing environment for exercising a full web stack
 | Databases | MySQL 8 and PostgreSQL 16 (test matrix runs against both) |
 | Cache / queues / sessions | Redis 7 (via predis) |
 | Mail catcher | Mailpit (SMTP + HTTP API) |
-| Frontend | Vue 3 + TypeScript + Vite, served as a production build by nginx |
-| Unit testing | PHPUnit (backend), Vitest (frontend) |
-| E2E / UX testing | Playwright *(planned — phase 2)* |
-| Load testing | k6 *(planned — phase 5)* |
+| Frontends | Vue 3 and React 18, TypeScript + Vite, served as production builds by nginx |
+| Unit testing | PHPUnit (backend), Vitest (both frontends) |
+| E2E / UX testing | Playwright (real browsers, both frontends against the same backend) |
+| Load testing | k6 (thresholds enforce pass/fail) |
 
 ## Design principles
 
@@ -55,7 +55,27 @@ make test-matrix
 
 # Frontend unit tests (Vitest, runs in the node build stage)
 make test-unit
+
+# End-to-end tests (Playwright, real browsers against the internal network)
+make test-e2e
+
+# Load tests (k6 — fails the build when latency or error-rate thresholds are breached)
+make test-load
+
+# Everything, aborting on the first failure — this is what CI runs
+make test-all
 ```
+
+Every run writes to `artifacts/{type}/{run-id}/` following a stable contract, where
+`run-id` is `{UTC timestamp}_{git sha}`:
+
+```text
+artifacts/e2e/{run-id}/     results.json, meta.json, output/   (traces & screenshots on failure)
+artifacts/load/{run-id}/    summary.json, meta.json
+```
+
+`meta.json` records the timestamp, git SHA, database engine, and run type — enough to
+compare runs over time, which is what the planned QA agent (phase 7) consumes.
 
 All targets fail with a non-zero exit code when tests fail — safe to wire into CI as-is.
 
@@ -64,6 +84,9 @@ All targets fail with a non-zero exit code when tests fail — safe to wire into
 ```text
 backend-laravel/     Laravel app (Dockerfile: php:8.4-cli, pdo_mysql + pdo_pgsql)
 frontend-vue/        Vue 3 SPA (Dockerfile: node build stage → nginx)
+frontend-react/      React 18 SPA (same multi-stage pattern)
+tests/e2e/           Playwright specs and config
+tests/load/          k6 scenarios
 artifacts/           Test run outputs (gitignored; stable contract for tooling)
 docker-compose.yml   Single compose file, runners behind profiles
 Makefile             Entry point for every workflow — local, CI, and VM use the same targets
@@ -75,10 +98,10 @@ Makefile             Entry point for every workflow — local, CI, and VM use th
 |-------|-------------|--------|
 | 0 | Skeleton: compose + Laravel + healthchecks + seeders + DB matrix | ✅ Done |
 | 1 | Vue frontend (production build via nginx) + health endpoint | ✅ Done |
-| 2 | Playwright runner, E2E smoke test, artifact contract | Pending |
-| 3 | Exit-code hardening across all Make targets | Pending |
-| 4 | CI on GitHub Actions | Pending |
-| 5 | PostgreSQL in CI matrix, React frontend, k6 load scenarios | Pending |
+| 2 | Playwright runner, E2E smoke test, artifact contract | ✅ Done |
+| 3 | Exit-code hardening across all Make targets | ✅ Done |
+| 4 | CI on GitHub Actions | ✅ Done |
+| 5 | PostgreSQL in CI matrix, React frontend, k6 load scenarios | ✅ Done |
 | 6 | Remote VM (Hetzner) with scheduled runs | Pending |
 | 7 | AI QA agent consuming historical test artifacts | Pending |
 

@@ -100,6 +100,24 @@ services:
       target: base
     command: ["npm", "run", "test:unit", "--", "--run"]
 
+  frontend-react:
+    build: ./frontend-react
+    depends_on:
+      laravel-app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  frontend-react-test:
+    profiles: [unit]
+    build:
+      context: ./frontend-react
+      target: base
+    command: ["npm", "run", "test:unit", "--", "--run"]
+
   playwright-runner:
     profiles: [e2e]
     # La versión DEBE coincidir exacto con @playwright/test en tests/e2e/package.json
@@ -110,6 +128,7 @@ services:
       - ./artifacts:/artifacts
     environment:
       BASE_URL_VUE: http://frontend-vue
+      BASE_URL_REACT: http://frontend-react
       API_URL: http://laravel-app:8000
       RUN_ID: ${RUN_ID:-dev}
       GIT_SHA: ${GIT_SHA:-unknown}
@@ -118,5 +137,32 @@ services:
     depends_on:
       frontend-vue:
         condition: service_healthy
+      frontend-react:
+        condition: service_healthy
     # Sin `playwright install`: los browsers ya vienen en la imagen oficial
     command: ["bash", "-c", "npm ci --loglevel=error && npx playwright test"]
+
+  k6-runner:
+    profiles: [load]
+    image: grafana/k6:2.2.0
+    working_dir: /tests
+    volumes:
+      - ./tests/load:/tests
+      - ./artifacts:/artifacts
+    environment:
+      API_URL: http://laravel-app:8000
+      RUN_ID: ${RUN_ID:-dev}
+      GIT_SHA: ${GIT_SHA:-unknown}
+      DB_ENGINE: mysql
+    depends_on:
+      laravel-app:
+        condition: service_healthy
+    # k6 no crea el directorio de salida y NO falla si handleSummary no puede escribir:
+    # se crea antes y se verifica después, para que un artefacto faltante sea un fallo real
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        mkdir -p "/artifacts/load/$${RUN_ID}" &&
+        k6 run /tests/scenario_api_base.js &&
+        test -f "/artifacts/load/$${RUN_ID}/summary.json" &&
+        test -f "/artifacts/load/$${RUN_ID}/meta.json"

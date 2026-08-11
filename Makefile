@@ -1,5 +1,5 @@
-# Fases 0-3 — esqueleto + frontend vue + e2e + exit codes auditados. El target de load llega en fase 5.
-.PHONY: up down test-mysql test-pgsql test-matrix test-unit test-e2e test-all
+# Fases 0-5 — esqueleto, frontends vue/react, e2e, carga.
+.PHONY: up down test-mysql test-pgsql test-matrix test-unit test-e2e test-load test-all
 
 GIT_SHA := $(shell git rev-parse --short HEAD)
 RUN_ID  := $(shell date -u +%Y%m%dT%H%M%SZ)_$(GIT_SHA)
@@ -20,11 +20,17 @@ test-matrix: test-mysql test-pgsql
 
 test-unit:
 	docker compose --profile unit run --build --rm frontend-vue-test
+	docker compose --profile unit run --build --rm frontend-react-test
 
 test-e2e:
 	docker compose up -d --wait --build laravel-app frontend-vue
 	docker compose exec laravel-app php artisan migrate:fresh --seed --force
 	RUN_ID=$(RUN_ID) GIT_SHA=$(GIT_SHA) docker compose --profile e2e up --exit-code-from playwright-runner playwright-runner
+
+test-load:
+	docker compose up -d --wait laravel-app
+	docker compose exec laravel-app php artisan migrate:fresh --seed --force
+	RUN_ID=$(RUN_ID) GIT_SHA=$(GIT_SHA) docker compose --profile load up --exit-code-from k6-runner k6-runner
 
 # Corre todo; make aborta en el primer target que falle
 test-all: test-matrix test-unit test-e2e
