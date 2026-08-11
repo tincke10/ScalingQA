@@ -190,8 +190,7 @@ Definido ahora porque la fase de IA lo consume después. Toda corrida de cualqui
 artifacts/
   e2e/{run-id}/
     results.json            # Playwright con reporter json
-    traces/                 # traces de tests fallidos
-    screenshots/
+    output/                 # traces y screenshots de fallos (organización nativa de Playwright)
     meta.json               # timestamp ISO, git SHA, motor de DB (mysql|pgsql), tipo de corrida
   load/{run-id}/
     summary.json            # k6 --summary-export

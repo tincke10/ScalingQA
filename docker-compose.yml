@@ -99,3 +99,24 @@ services:
       context: ./frontend-vue
       target: base
     command: ["npm", "run", "test:unit", "--", "--run"]
+
+  playwright-runner:
+    profiles: [e2e]
+    # La versión DEBE coincidir exacto con @playwright/test en tests/e2e/package.json
+    image: mcr.microsoft.com/playwright:v1.62.1-noble
+    working_dir: /work
+    volumes:
+      - ./tests/e2e:/work
+      - ./artifacts:/artifacts
+    environment:
+      BASE_URL_VUE: http://frontend-vue
+      API_URL: http://laravel-app:8000
+      RUN_ID: ${RUN_ID:-dev}
+      GIT_SHA: ${GIT_SHA:-unknown}
+      DB_ENGINE: mysql
+      CI: "true"
+    depends_on:
+      frontend-vue:
+        condition: service_healthy
+    # Sin `playwright install`: los browsers ya vienen en la imagen oficial
+    command: ["bash", "-c", "npm ci --loglevel=error && npx playwright test"]
