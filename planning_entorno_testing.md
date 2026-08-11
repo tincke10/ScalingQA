@@ -257,6 +257,9 @@ test-matrix: test-mysql test-pgsql
 test-unit:
 	docker compose --profile unit run --build --rm frontend-vue-test
 	docker compose --profile unit run --build --rm frontend-react-test
+
+# Corre todo; make aborta en el primer target que falle
+test-all: test-matrix test-unit test-e2e
 ```
 
 Notas:
