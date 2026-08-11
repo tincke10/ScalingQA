@@ -1,0 +1,25 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Toda la lógica vive en el Makefile: CI corre exactamente lo mismo que local
+      - name: Run full test battery
+        run: make test-all
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: artifacts/
+          if-no-files-found: ignore
