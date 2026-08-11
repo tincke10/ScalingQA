@@ -169,7 +169,7 @@ project-root/
   - `grafana/k6` con tag exacto clavado (nunca `latest`, coherente con la política de versiones).
   - Comando incluye `--summary-export` hacia `artifacts/load/<run-id>/`.
 - **frontend-vue-test / frontend-react-test** — `profiles: [unit]`
-  - Mismo Dockerfile que el frontend pero con `build.target: build` (el stage de Node, que sí tiene npm y las devDependencies).
+  - Mismo Dockerfile que el frontend pero con `build.target: base` (el stage de Node con deps + código, ANTES del build de prod: los tests no deben exigir que el build compile).
   - Comando: `npm run test`.
   - Necesarios porque la imagen final de los frontends es nginx sirviendo `dist/`: no tiene Node, no puede correr Vitest.
 - **influxdb + grafana** — `profiles: [observability]` (recién en la VM; no antes).

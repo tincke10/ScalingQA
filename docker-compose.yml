@@ -79,3 +79,23 @@ services:
       timeout: 5s
       retries: 20
       start_period: 30s
+
+  frontend-vue:
+    build: ./frontend-vue
+    depends_on:
+      laravel-app:
+        condition: service_healthy
+    healthcheck:
+      # nginx:alpine trae wget de busybox, no curl; 127.0.0.1 explícito porque
+      # localhost en alpine resuelve primero a ::1
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  frontend-vue-test:
+    profiles: [unit]
+    build:
+      context: ./frontend-vue
+      target: base
+    command: ["npm", "run", "test:unit", "--", "--run"]

@@ -15,10 +15,16 @@ COPY composer.json composer.lock ./
 RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
 
 COPY . .
-RUN composer dump-autoload --optimize \
+# .env determinista desde el ejemplo versionado: las env vars del compose tienen precedencia,
+# pero `php artisan test` espera que el archivo exista
+RUN cp .env.example .env \
+    && composer dump-autoload --optimize \
     && php artisan package:discover --ansi
 
 EXPOSE 8000
 
-# migrate:fresh en cada arranque: entorno de test, DB en tmpfs, estado siempre determinista
-CMD ["sh", "-c", "php artisan migrate:fresh --seed --force && exec php artisan serve --host=0.0.0.0 --port=8000"]
+# migrate:fresh en cada arranque: entorno de test, DB en tmpfs, estado siempre determinista.
+# php -S directo con el router de Laravel en vez de `artisan serve`: serve filtra las env vars
+# (passthroughVariables) y el server no vería APP_KEY/DB_*/REDIS_* del compose
+# El router exige cwd=public (igual que lo lanza artisan serve internamente)
+CMD ["sh", "-c", "php artisan migrate:fresh --seed --force && cd public && exec php -S 0.0.0.0:8000 /app/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php"]

@@ -1,5 +1,5 @@
-# Fase 0 — targets del esqueleto. Los de e2e/load llegan en fases 2 y 5.
-.PHONY: up down test-mysql test-pgsql test-matrix
+# Fases 0-1 — esqueleto + frontend vue. Los targets de e2e/load llegan en fases 2 y 5.
+.PHONY: up down test-mysql test-pgsql test-matrix test-unit
 
 up:
 	docker compose up --build -d --wait
@@ -14,3 +14,6 @@ test-pgsql:
 	docker compose run --rm -e DB_CONNECTION=pgsql -e DB_HOST=postgres -e DB_PORT=5432 laravel-app php artisan test
 
 test-matrix: test-mysql test-pgsql
+
+test-unit:
+	docker compose --profile unit run --build --rm frontend-vue-test
