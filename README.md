@@ -18,6 +18,7 @@ is a reference fixture that demonstrates each capability. To plug in your own ap
 | Unit testing | PHPUnit (backend), Vitest (both frontends) |
 | E2E / UX testing | Playwright (real browsers, both frontends against the same backend) |
 | Load testing | k6 (thresholds enforce pass/fail) |
+| Security | composer/npm audit, gitleaks, Trivy, security-headers; LLM workflow discovery (DeepSeek) |
 
 ## Design principles
 
@@ -109,15 +110,51 @@ it, the agent still produces the full report.
 
 All targets fail with a non-zero exit code when tests fail — safe to wire into CI as-is.
 
+## Security discovery
+
+Security testing is built in layers, from cheap-and-deterministic to LLM-assisted. The
+guiding principle: **the LLM does not report findings — it generates Playwright specs that
+try to exploit a hypothesis, and the test verifies.** A reproduced exploit is a real finding
+with evidence; anything that doesn't reproduce is discarded at no cost. See
+[sdd/security-discovery/](sdd/security-discovery/) for the full design.
+
+**Layer 0 — deterministic, no LLM** (`make security-scan`, runs in CI on every PR):
+
+```bash
+make security-scan
+```
+
+Runs `composer audit`, `npm audit` (all Node projects), gitleaks (secrets), Trivy
+(dependency vulnerabilities), and the security-headers E2E spec. No credentials, exits
+non-zero on any finding. Dockerfile misconfig checks (non-root user) are opt-in for
+production hardening via `SECURITY_MISCONFIG=1`.
+
+**Layer 1 — workflow discovery** (`make discover`, requires a DeepSeek API key):
+
+```bash
+echo 'DEEPSEEK_API_KEY=sk-...' > .env   # gitignored; never committed
+make discover
+```
+
+Feeds the app's routes and middleware to DeepSeek and produces a structured workflow map
+(`artifacts/security/workflow-map/{git-sha}.json`), cached by git SHA so it only re-runs when
+the code changes. The provider is abstracted, so swapping DeepSeek for a self-hosted model is
+a base-URL change. Without the key, `make security-scan` (Layer 0) still works fully.
+
+Layers 2 (adversarial spec generation) and 3 (verification with inverted semantics) are
+designed in the SDD and not yet implemented.
+
 ## Repository layout
 
 ```text
 backend-laravel/     Laravel app (Dockerfile: php:8.4-cli, pdo_mysql + pdo_pgsql)
 frontend-vue/        Vue 3 SPA (Dockerfile: node build stage → nginx)
 frontend-react/      React 18 SPA (same multi-stage pattern)
-tests/e2e/           Playwright specs and config
+tests/e2e/           Playwright specs and config (incl. security-headers)
 tests/load/          k6 scenarios
 qa-agent/            Historical artifact analysis (TypeScript, optional LLM layer)
+security/            Layer 0 scanner orchestration (scan.sh, gitleaks config)
+security-agent/      Layer 1 workflow discovery (TypeScript, DeepSeek provider)
 artifacts/           Test run outputs (gitignored; stable contract for tooling)
 docker-compose.yml   Single compose file, runners behind profiles
 Makefile             Entry point for every workflow — local, CI, and VM use the same targets
@@ -135,6 +172,9 @@ Makefile             Entry point for every workflow — local, CI, and VM use th
 | 5 | PostgreSQL in CI matrix, React frontend, k6 load scenarios | ✅ Done |
 | 6 | Remote VM (Hetzner) with scheduled runs | Pending |
 | 7 | QA agent consuming historical test artifacts | ✅ Done |
+| Sec 0 | Deterministic security scan (deps, secrets, headers) | ✅ Done |
+| Sec 1 | LLM workflow discovery (DeepSeek) | ✅ Done |
+| Sec 2–3 | Adversarial spec generation + verification | Designed |
 
 ## Notes
 
