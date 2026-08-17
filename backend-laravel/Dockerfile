@@ -15,7 +15,11 @@ WORKDIR /app
 
 # Capa de dependencias separada: composer.json cambia menos que el código
 COPY composer.json composer.lock ./
-RUN composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
+# Build secret OPCIONAL: en CI, COMPOSER_AUTH lleva un GITHUB_TOKEN para no pegar al rate
+# limit anónimo de la API de GitHub (causa de los HTTP 504 al bajar zipballs). En local no
+# se pasa y composer descarga anónimo. El secret nunca queda horneado en la imagen.
+RUN --mount=type=secret,id=composer_auth,env=COMPOSER_AUTH,required=false \
+    composer install --no-interaction --prefer-dist --no-scripts --no-autoloader
 
 COPY . .
 # .env determinista desde el ejemplo versionado: las env vars del compose tienen precedencia,

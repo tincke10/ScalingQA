@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# Le da a composer el GITHUB_TOKEN automático de Actions (via el build secret composer_auth),
+# para no pegar al rate limit anónimo de la API de GitHub — causa de los HTTP 504 al bajar deps.
+env:
+  COMPOSER_AUTH: '{"github-oauth":{"github.com":"${{ secrets.GITHUB_TOKEN }}"}}'
+
 jobs:
   # El motor de DB es una dimensión explícita: un job por motor, en paralelo
   backend:

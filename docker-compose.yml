@@ -45,7 +45,10 @@ services:
       retries: 20
 
   laravel-app:
-    build: ./backend-laravel
+    build:
+      context: ./backend-laravel
+      secrets:
+        - composer_auth
     environment:
       APP_ENV: local
       # Clave fija de TEST: este entorno no maneja secretos reales (credenciales test/test versionadas)
@@ -210,3 +213,9 @@ services:
         k6 run "/tests/$${SCENARIO}" &&
         test -f "/artifacts/load/$${RUN_ID}/summary.json" &&
         test -f "/artifacts/load/$${RUN_ID}/meta.json"
+
+# Secret de build OPCIONAL para composer. En CI se puebla desde COMPOSER_AUTH (con el
+# GITHUB_TOKEN de Actions); en local la env var no existe y el build descarga anónimo.
+secrets:
+  composer_auth:
+    environment: COMPOSER_AUTH
