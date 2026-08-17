@@ -2,6 +2,10 @@
 
 A reproducible, Docker-based testing environment for exercising a full web stack — regression, load, and UX testing — designed to run identically on a local machine, in CI, and on a remote VM.
 
+**This is a reusable template.** The scaffolding is the product; the included task-CRUD app
+is a reference fixture that demonstrates each capability. To plug in your own app, see
+**[TEMPLATE.md](TEMPLATE.md)** — everything replaceable is tagged `@fixture` (`rg "@fixture"`).
+
 ## Stack
 
 | Layer | Technology |
