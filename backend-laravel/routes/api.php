@@ -13,7 +13,8 @@ Route::get('/user', function (Request $request) {
  * @fixture Rutas demostrativas. login es público; el CRUD de tasks exige token.
  * Reemplazar por las rutas de tu aplicación.
  */
-Route::post('/login', [AuthController::class, 'login']);
+// throttle contra fuerza bruta: 6 intentos por minuto por IP (hallazgo de la Capa 3 de seguridad)
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:6,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tasks', [TaskController::class, 'index']);

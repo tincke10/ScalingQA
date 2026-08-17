@@ -36,6 +36,19 @@ class TaskApiTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_login_tiene_rate_limiting_contra_fuerza_bruta(): void
+    {
+        User::factory()->create(['email' => 'a@example.com', 'password' => 'password']);
+
+        // El límite es 6/min: al 7mo intento debe cortar con 429
+        for ($i = 0; $i < 6; $i++) {
+            $this->postJson('/api/login', ['email' => 'a@example.com', 'password' => 'mala']);
+        }
+
+        $this->postJson('/api/login', ['email' => 'a@example.com', 'password' => 'mala'])
+            ->assertStatus(429);
+    }
+
     public function test_listar_tareas_exige_autenticacion(): void
     {
         $this->getJson('/api/tasks')->assertUnauthorized();
