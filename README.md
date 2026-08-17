@@ -68,7 +68,16 @@ make test-load
 
 # Everything, aborting on the first failure — this is what CI runs
 make test-all
+
+# Security scan (deterministic, no LLM): deps, secrets, images, headers
+make security-scan
 ```
+
+`make security-scan` runs `composer audit`, `npm audit` (all Node projects), gitleaks
+(secrets), Trivy (dependency vulnerabilities), and the security-headers E2E spec. It runs
+in CI on every PR, needs no credentials, and exits non-zero on any finding. Dockerfile
+misconfig checks (non-root user) are opt-in for production hardening via
+`SECURITY_MISCONFIG=1`.
 
 Every run writes to `artifacts/{type}/{run-id}/` following a stable contract, where
 `run-id` is `{UTC timestamp}_{git sha}`:

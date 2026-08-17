@@ -1,5 +1,5 @@
-# Fases 0-5 — esqueleto, frontends vue/react, e2e, carga.
-.PHONY: up down test-mysql test-pgsql test-matrix test-unit test-e2e test-load test-all
+# Fases 0-5 + seguridad capa 0.
+.PHONY: up down test-mysql test-pgsql test-matrix test-unit test-e2e test-load test-all security-scan
 
 GIT_SHA := $(shell git rev-parse --short HEAD)
 RUN_ID  := $(shell date -u +%Y%m%dT%H%M%SZ)_$(GIT_SHA)
@@ -36,6 +36,10 @@ test-load:
 # Analiza el historial de artefactos y escribe el informe en qa-suggestions/
 qa-report:
 	RUN_ID=$(RUN_ID) docker compose --profile qa run --build --rm qa-agent
+
+# Seguridad Capa 0: determinista, sin LLM (deps, secretos, imágenes, headers)
+security-scan:
+	sh security/scan.sh
 
 # Corre todo; make aborta en el primer target que falle
 test-all: test-matrix test-unit test-e2e

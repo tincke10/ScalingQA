@@ -1,0 +1,12 @@
+# Config de gitleaks para el escaneo de secretos (Capa 0).
+# Extiende las reglas por defecto y excluye dependencias de terceros: escaneamos
+# NUESTRO código, no vendor/ ni node_modules/ (que producen falsos positivos).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Excluir dependencias instaladas de terceros"
+paths = [
+  '''.*/node_modules/.*''',
+  '''.*/vendor/.*''',
+]

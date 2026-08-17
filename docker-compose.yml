@@ -134,13 +134,15 @@ services:
       GIT_SHA: ${GIT_SHA:-unknown}
       DB_ENGINE: mysql
       CI: "true"
+      # filtro opcional: security-scan corre solo el spec de headers con PW_GREP
+      PW_GREP: ${PW_GREP:-}
     depends_on:
       frontend-vue:
         condition: service_healthy
       frontend-react:
         condition: service_healthy
     # Sin `playwright install`: los browsers ya vienen en la imagen oficial
-    command: ["bash", "-c", "npm ci --loglevel=error && npx playwright test"]
+    command: ["bash", "-c", "npm ci --loglevel=error && npx playwright test ${PW_GREP:+--grep \"$PW_GREP\"}"]
 
   qa-agent:
     profiles: [qa]

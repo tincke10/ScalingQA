@@ -8,6 +8,9 @@ RUN apt-get update \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+# Seguridad (Capa 0): no exponer la versión de PHP en el header X-Powered-By
+RUN echo "expose_php=Off" > /usr/local/etc/php/conf.d/security.ini
+
 WORKDIR /app
 
 # Capa de dependencias separada: composer.json cambia menos que el código

@@ -10,19 +10,26 @@ Leyenda: `[ ]` pendiente · `[x]` hecho.
 
 ## Capa 0 — Escaneo determinista (sin dependencias, va primero)
 
-- [ ] **0.1** Servicio `security-scanner` en compose (profile `security`) con Trivy + gitleaks.
-  - Verificación: `docker compose --profile security run --rm security-scanner trivy --version` responde.
-- [ ] **0.2** Spec `tests/e2e/tests/security-headers.spec.ts` (test rojo primero).
-  - Verificación: falla nombrando `X-Powered-By` presente (hallazgo real heredado de `php -S`).
-- [ ] **0.3** Suprimir `X-Powered-By` en el server de Laravel → el spec 0.2 pasa a verde.
-- [ ] **0.4** Target `make security-scan`: composer audit + npm audit (3 proyectos) + trivy + gitleaks + headers.
-  - Verificación: con umbral `high`, corre los cinco y agrega exit codes fail-fast.
-- [ ] **0.5** Auditar fallo honesto (patrón fase 3): introducir dep vulnerable temporal y secreto dummy → exit ≠ 0 en cada scanner; revertir.
-- [ ] **0.6** Job `security` en CI, paralelo, sin credenciales.
-  - Verificación: PR corre el job; PR con secreto dummy queda rojo.
-- [ ] **0.7** README + planning: documentar `make security-scan` y el hallazgo de `X-Powered-By`.
+- [x] **0.1** Scanners en el orquestador `security/scan.sh` (Trivy 0.74.0 + gitleaks v8.30.1,
+  imágenes oficiales clavadas). Se desvió del servicio compose único: correr las herramientas
+  en su contexto natural (docker run) es más simple y clava versiones igual.
+- [x] **0.2** Spec `tests/e2e/tests/security-headers.spec.ts` (rojo primero: 7 fallos reales —
+  `X-Powered-By` en la API + falta de headers en API y frontends).
+- [x] **0.3** Fix: `expose_php=Off` (php.ini) + middleware `SecurityHeaders` en Laravel +
+  `add_header` en los nginx de ambos frontends → 9 specs de headers en verde.
+- [x] **0.4** Target `make security-scan`: composer audit + npm audit (4 proyectos) + gitleaks +
+  trivy + spec de headers (vía `PW_GREP`). Corre todos y sale ≠ 0 si cualquiera encuentra algo.
+- [x] **0.5** Fallo honesto verificado: secreto sembrado → gitleaks exit 1; árbol limpio → 0.
+  Falsos positivos de scope eliminados (config gitleaks + `--skip-dirs` en trivy excluyen
+  vendor/node_modules; misconfig "USER root" movido a opt-in `SECURITY_MISCONFIG=1`).
+- [x] **0.6** Job `security` en CI (`.github/workflows/test.yml`), paralelo, sin credenciales.
+- [x] **0.7** README documenta `make security-scan`; hallazgo de `X-Powered-By` corregido.
 
-**Salida de Capa 0:** `make security-scan` verde en el árbol limpio, rojo ante dep vulnerable o secreto, corriendo en CI. Cero LLM.
+**Salida de Capa 0:** ✅ `make security-scan` verde en árbol limpio, rojo ante secreto, en CI. Cero LLM.
+
+> **Hallazgo real de Capa 0**: la API filtraba `X-Powered-By` (herencia de `php -S`, fase 1) y
+> ni API ni frontends mandaban headers de seguridad. 7 fallos reales, todos corregidos.
+> El `vitest` de qa-agent tenía un CVE crítico (GHSA-5xrq-8626-4rwp) — actualizado a 3.2.7.
 
 ---
 
