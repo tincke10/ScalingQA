@@ -136,6 +136,8 @@ services:
       CI: "true"
       # filtro opcional: security-scan corre solo el spec de headers con PW_GREP
       PW_GREP: ${PW_GREP:-}
+      # Capa 3 apunta el runner a ./generated (specs adversariales) en vez de ./tests
+      TEST_DIR: ${TEST_DIR:-./tests}
     depends_on:
       frontend-vue:
         condition: service_healthy
@@ -168,10 +170,13 @@ services:
     build: ./security-agent
     volumes:
       - ./artifacts:/artifacts
+      - ./tests/e2e:/e2e
+      - ./qa-suggestions:/qa-suggestions
     environment:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-flash}
       GIT_SHA: ${GIT_SHA:-unknown}
+      RUN_ID: ${RUN_ID:-dev}
 
   security-agent-test:
     profiles: [unit]

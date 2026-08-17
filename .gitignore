@@ -8,3 +8,6 @@ vendor/
 
 # secretos: la API key de DeepSeek va acá, nunca al repo
 .env
+
+# specs adversariales generados por el LLM (Capa 2): artefactos, no fuente. Zona de cuarentena.
+tests/e2e/generated/

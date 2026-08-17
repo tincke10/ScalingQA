@@ -49,5 +49,20 @@ discover:
 	docker compose exec -T laravel-app php artisan route:list --json > artifacts/security/routes.json
 	GIT_SHA=$(GIT_SHA) docker compose --profile discover run --build --rm security-agent
 
+# Seguridad Capa 2: genera specs adversariales en tests/e2e/generated/ (nunca auto-merge).
+generate-security-tests:
+	GIT_SHA=$(GIT_SHA) docker compose --profile discover run --build --rm security-agent npm run generate
+
+# Seguridad Capa 3: corre los specs generados con semántica invertida (spec que pasa = vuln real)
+# y promueve los reproducidos a qa-suggestions/. El exit del runner se ignora a propósito.
+# LIMITACIÓN CONOCIDA: los specs corren en secuencia sin re-seed entre cada uno, así que un
+# spec que muta estado (crear tasks) puede contaminar a otro (idor) y producir falso positivo.
+# Un confirmado SIEMPRE debe verificarse aislado antes de creerlo. Aislamiento por-spec: TODO.
+security-verify:
+	docker compose up -d --wait laravel-app frontend-vue frontend-react
+	docker compose exec -T laravel-app php artisan migrate:fresh --seed --force
+	RUN_ID=$(RUN_ID) TEST_DIR=./generated docker compose --profile e2e up --exit-code-from playwright-runner playwright-runner || true
+	RUN_ID=$(RUN_ID) GIT_SHA=$(GIT_SHA) docker compose --profile discover run --rm security-agent npm run verify
+
 # Corre todo; make aborta en el primer target que falle
 test-all: test-matrix test-unit test-e2e
