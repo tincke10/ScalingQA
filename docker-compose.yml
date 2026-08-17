@@ -167,20 +167,21 @@ services:
     volumes:
       - ./tests/load:/tests
       - ./artifacts:/artifacts
-    environment:
-      API_URL: http://laravel-app:8000
-      RUN_ID: ${RUN_ID:-dev}
-      GIT_SHA: ${GIT_SHA:-unknown}
-      DB_ENGINE: mysql
     depends_on:
       laravel-app:
         condition: service_healthy
     # k6 no crea el directorio de salida y NO falla si handleSummary no puede escribir:
     # se crea antes y se verifica después, para que un artefacto faltante sea un fallo real
+    environment:
+      API_URL: http://laravel-app:8000
+      RUN_ID: ${RUN_ID:-dev}
+      GIT_SHA: ${GIT_SHA:-unknown}
+      DB_ENGINE: mysql
+      SCENARIO: ${SCENARIO:-scenario_tasks_auth.js}
     entrypoint: ["sh", "-c"]
     command:
       - |
         mkdir -p "/artifacts/load/$${RUN_ID}" &&
-        k6 run /tests/scenario_api_base.js &&
+        k6 run "/tests/$${SCENARIO}" &&
         test -f "/artifacts/load/$${RUN_ID}/summary.json" &&
         test -f "/artifacts/load/$${RUN_ID}/meta.json"
