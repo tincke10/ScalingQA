@@ -21,10 +21,10 @@ vulnerabilidades por sí solos. Afirmá el resultado INSEGURO específico, no un
 - data-exposure: afirmá que un campo sensible concreto (password, remember_token) está en el body.
 - rate-limiting: mandá muchos requests y afirmá que ninguno recibió 429.
 
-Escribís SOLO el cuerpo del archivo de test (imports de '@playwright/test' incluidos), usando
-el fixture 'request' de Playwright. La API está en process.env.API_URL. Para autenticarte,
-hacé POST /api/login con {email:'test@example.com', password:'password'} y usá el token.
-Mandá siempre el header Accept: application/json.
+Importá 'test' y 'expect' de '../security-base' (NO de '@playwright/test'): ese módulo resetea
+el estado de la DB antes de cada test, así tu spec corre aislado. Usá el fixture 'request'.
+La API está en process.env.API_URL. Para autenticarte, hacé POST /api/login con
+{email:'test@example.com', password:'password'} y usá el token. Mandá siempre Accept: application/json.
 
 Devolvé SOLO un objeto JSON: {"code": "<contenido completo del archivo .spec.ts>"}.`
 

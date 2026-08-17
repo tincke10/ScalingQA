@@ -13,7 +13,12 @@ export default defineConfig({
   outputDir: `${artifactsDir}/output`,
   reporter: [['list'], ['json', { outputFile: `${artifactsDir}/results.json` }]],
   use: {
-    baseURL: process.env.BASE_URL_VUE ?? 'http://frontend-vue',
+    // Los specs de seguridad (./generated) pegan a la API con rutas relativas, así que su
+    // baseURL debe ser la API; la suite normal apunta al frontend.
+    baseURL:
+      process.env.TEST_DIR === './generated'
+        ? process.env.API_URL ?? 'http://laravel-app:8000'
+        : process.env.BASE_URL_VUE ?? 'http://frontend-vue',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

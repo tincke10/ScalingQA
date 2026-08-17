@@ -3,7 +3,20 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TaskController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
+
+// Reset de estado para aislamiento de tests (Capa 3). NUNCA en producción: solo local/testing.
+// Permite que cada spec adversarial corra contra un estado recién seedeado y no se contamine.
+if (! app()->environment('production')) {
+    Route::post('/_test/reseed', function () {
+        Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+        // limpia el rate limiter (cache) para que un spec no herede el 429 de otro
+        Artisan::call('cache:clear');
+
+        return response()->json(['reseeded' => true]);
+    });
+}
 
 Route::get('/user', function (Request $request) {
     return $request->user();
