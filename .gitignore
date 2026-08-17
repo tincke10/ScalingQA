@@ -1,3 +1,7 @@
 artifacts/
 .DS_Store
 qa-suggestions/
+
+# dependencias instaladas: nunca al repo (cada proyecto las resuelve por su lockfile)
+node_modules/
+vendor/
