@@ -162,6 +162,24 @@ services:
       target: base
     command: ["npx", "vitest", "run"]
 
+  # Capa 1 de seguridad: discovery de workflows con LLM (DeepSeek). Requiere API key.
+  security-agent:
+    profiles: [discover]
+    build: ./security-agent
+    volumes:
+      - ./artifacts:/artifacts
+    environment:
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_MODEL: ${DEEPSEEK_MODEL:-deepseek-v4-flash}
+      GIT_SHA: ${GIT_SHA:-unknown}
+
+  security-agent-test:
+    profiles: [unit]
+    build:
+      context: ./security-agent
+      target: base
+    command: ["npx", "vitest", "run"]
+
   k6-runner:
     profiles: [load]
     image: grafana/k6:2.2.0

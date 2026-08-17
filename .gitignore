@@ -5,3 +5,6 @@ qa-suggestions/
 # dependencias instaladas: nunca al repo (cada proyecto las resuelve por su lockfile)
 node_modules/
 vendor/
+
+# secretos: la API key de DeepSeek va acá, nunca al repo
+.env
