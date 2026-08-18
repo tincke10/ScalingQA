@@ -55,9 +55,9 @@ generate-security-tests:
 
 # Seguridad Capa 3: corre los specs generados con semántica invertida (spec que pasa = vuln real)
 # y promueve los reproducidos a qa-suggestions/. El exit del runner se ignora a propósito.
-# LIMITACIÓN CONOCIDA: los specs corren en secuencia sin re-seed entre cada uno, así que un
-# spec que muta estado (crear tasks) puede contaminar a otro (idor) y producir falso positivo.
-# Un confirmado SIEMPRE debe verificarse aislado antes de creerlo. Aislamiento por-spec: TODO.
+# Aislamiento por-spec: tests/e2e/security-base.ts resetea el estado (endpoint /api/_test/reseed)
+# antes de cada spec, así uno que muta estado (crear tasks) no contamina a otro (idor).
+# Aun así, un confirmado SIEMPRE debe verificarse aislado antes de creerlo.
 security-verify:
 	docker compose up -d --wait laravel-app frontend-vue frontend-react
 	docker compose exec -T laravel-app php artisan migrate:fresh --seed --force

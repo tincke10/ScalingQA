@@ -35,40 +35,45 @@ Leyenda: `[ ]` pendiente · `[x]` hecho.
 
 ## Capa 1 — Discovery
 
-- [ ] **1.1** `security-agent/` scaffold (TS, Dockerfile multi-stage base/build, profile `unit`), espejo de `qa-agent`.
-- [ ] **1.2** Recolector determinista: `route:list --json` + árbol de componentes + specs existentes → objeto de entrada. Unit tests (test rojo primero).
-- [ ] **1.3** JSON Schema de `workflow-map` + validador. Unit test: mapa mal formado se rechaza.
-- [ ] **1.4** Abstracción `LlmProvider` + `DeepSeekProvider` (endpoint, json mode, modelo por env). Unit test con fetch mockeado.
-- [ ] **1.5** Discovery: arma prompt, llama al provider, valida contra schema, escribe `artifacts/security/workflow-map/{sha}.json`.
-- [ ] **1.6** Caché por SHA: si existe el archivo del SHA actual, no llama al LLM. Unit test de ambos caminos.
-- [ ] **1.7** Degradación sin API key: mensaje accionable, no stack trace. Unit test.
-- [ ] **1.8** Target `make discover` + doc.
+- [x] **1.1** `security-agent/` scaffold (TS, Dockerfile multi-stage, profile `unit`), espejo de `qa-agent`. `security-agent/` con `Dockerfile`, `package.json`, `vitest.config.ts`, `tsconfig.json`.
+- [x] **1.2** Recolector determinista: `route:list --json` + componentes + specs existentes → objeto de entrada. `src/collect.ts` + `__tests__/collect.test.ts`.
+- [x] **1.3** JSON Schema de `workflow-map` + validador. `src/schema.ts` + `schema.test.ts` (rechaza mapa mal formado).
+- [x] **1.4** Abstracción `LlmProvider` + `DeepSeekProvider` (endpoint, json mode, modelo por env). `src/provider.ts` + `provider.test.ts` con fetch mockeado.
+- [x] **1.5** Discovery: arma prompt, llama al provider, valida contra schema, escribe `artifacts/security/workflow-map/{sha}.json`. `src/discover.ts` + `discover.test.ts`; mapas cacheados presentes (`be25285.json`, `b12b6a9.json`).
+- [x] **1.6** Caché por SHA: si existe el archivo del SHA actual, no llama al LLM (`discover.ts:35` `existsSync`). Unit test de ambos caminos.
+- [x] **1.7** Degradación sin API key: mensaje accionable + `exit 2`, no stack trace (`index.ts:12-18`).
+- [x] **1.8** Target `make discover` + doc (README "Layer 1").
 
-**Salida de Capa 1:** `make discover` produce un `workflow-map.json` válido de la app real, cacheado por SHA.
+**Salida de Capa 1:** ✅ `make discover` produce un `workflow-map.json` válido de la app real, cacheado por SHA.
 
 ---
 
 ## Capa 2 — Generación adversarial
 
-- [ ] **2.1** `vuln-catalog.md` como bloque estable (ya versionado; ampliar si hace falta).
-- [ ] **2.2** Config de Playwright: `testIgnore` de `tests/e2e/generated/` en la suite normal. Verificación R2.2: `make test-e2e` no corre generados.
-- [ ] **2.3** Generador: por (clase × workflow) arma prompt con bloques cacheables, pide un spec, lo escribe en `generated/` con encabezado obligatorio. Unit test del encabezado y la ruta.
-- [ ] **2.4** Prompt caching: catálogo + mapa como bloques cacheables; el `user` es solo el workflow objetivo. Verificar en la respuesta de la API que hubo cache hit.
-- [ ] **2.5** Target `make generate-security-tests`.
+- [x] **2.1** `vuln-catalog.md` como bloque estable (versionado; cargado en `src/catalog.ts` + `catalog.test.ts`).
+- [x] **2.2** Config de Playwright: la suite normal corre `./tests`; `./generated` solo se activa con `TEST_DIR=./generated` (`playwright.config.ts`). R2.2: `make test-e2e` no corre generados.
+- [x] **2.3** Generador: por (clase × workflow) arma prompt con bloques cacheables, escribe en `generated/` con encabezado obligatorio. `src/generate.ts` + `generate.test.ts`; 11 specs generados.
+- [x] **2.4** Prompt caching: catálogo + mapa van como prefijo estable; DeepSeek cachea el prefijo automáticamente (`provider.ts:17`, `discover.ts:7`, `generate.ts:7`). El `user` es solo el workflow objetivo.
+- [x] **2.5** Target `make generate-security-tests`.
 
-**Salida de Capa 2:** los specs aparecen solo en `generated/`, marcados, y la suite normal los ignora.
+**Salida de Capa 2:** ✅ los specs aparecen solo en `generated/`, marcados con encabezado, y la suite normal los ignora.
 
 ---
 
 ## Capa 3 — Verificación
 
-- [ ] **3.1** Target `make security-verify`: corre `tests/e2e/generated/` con la semántica invertida (spec que PASA = explotación reproducida = vulnerabilidad).
-- [ ] **3.2** Promoción: los reproducidos → `qa-suggestions/{run-id}-security.md` + evidencia (trace/screenshot) bajo `artifacts/security/{run-id}/` con `meta.json` (run_type: security).
-- [ ] **3.3** Exit code informativo: distingue "vulnerabilidades reales" de "error de ejecución"; bloqueo de CI configurable (default no bloquea).
-- [ ] **3.4** Prueba end-to-end del enfoque: sembrar un IDOR real temporal en la app → la cadena 1→2→3 lo descubre, genera el spec, lo reproduce y lo promueve con evidencia; quitar el IDOR → deja de promoverse.
-- [ ] **3.5** README + planning: documentar la cadena completa y la advertencia "no reemplaza pentest".
+- [x] **3.1** Target `make security-verify`: corre `tests/e2e/generated/` con semántica invertida (spec que PASA = explotación reproducida). `src/verify.ts`.
+- [x] **3.2** Promoción: los reproducidos → `qa-suggestions/{run-id}-security.md` + evidencia bajo `artifacts/security/{run-id}/` con `meta.json` (run_type: security). `verify.ts`; suggestions presentes.
+- [x] **3.3** Exit code informativo: `exit 1` ante error de ejecución (`verify.ts:67`); bloqueo por hallazgos configurable vía `SECURITY_BLOCK=1`, default no bloquea (`verify.ts:83`).
+- [x] **3.4** Prueba end-to-end del enfoque: validación bidireccional del commit `478a15b` — fixture seguro → 0 detecciones; IDOR sembrado → detecta exactamente el IDOR sin ruido (de 6 falsos positivos a 0 tras el aislamiento por-spec).
+- [x] **3.5** README + planning: cadena completa y advertencia "no reemplaza pentest" documentadas (README "Security discovery" + roadmap).
 
-**Salida de Capa 3:** la cadena descubre un IDOR sembrado y lo promueve con evidencia; sin el IDOR, no promueve nada.
+**Salida de Capa 3:** ✅ la cadena descubre un IDOR sembrado y lo promueve con evidencia; sin el IDOR, no promueve nada.
+
+> **Hallazgos reales de Capas 1-3**: IDOR en `show-task` (reproducido con evidencia) y falta de
+> rate limiting en `/api/login` (reproducido y **corregido** en `b12b6a9`). El aislamiento de
+> estado por-spec (`security-base.ts` + endpoint `/api/_test/reseed`, commit `478a15b`) eliminó
+> los falsos positivos por contaminación de estado entre specs.
 
 ---
 

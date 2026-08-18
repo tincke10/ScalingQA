@@ -2,7 +2,9 @@
 
 ## Estado
 
-`proposal` · pendiente de aprobación para pasar a `spec`.
+`completado` · Capas 0-3 implementadas y verificadas (ver `tasks.md`). Aprobado el enfoque
+"LLM propone, test verifica". Fuera de alcance y enganchado a fase 6: self-hosting del modelo
+y corridas programadas de la cadena.
 
 ## Por qué
 

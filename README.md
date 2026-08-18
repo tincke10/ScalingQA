@@ -141,8 +141,34 @@ Feeds the app's routes and middleware to DeepSeek and produces a structured work
 the code changes. The provider is abstracted, so swapping DeepSeek for a self-hosted model is
 a base-URL change. Without the key, `make security-scan` (Layer 0) still works fully.
 
-Layers 2 (adversarial spec generation) and 3 (verification with inverted semantics) are
-designed in the SDD and not yet implemented.
+**Layer 2 — adversarial spec generation** (`make generate-security-tests`, needs the DeepSeek key):
+
+```bash
+make generate-security-tests
+```
+
+For each (vulnerability class × workflow) it asks the model for a Playwright spec that tries to
+exploit the hypothesis, and writes it to `tests/e2e/generated/` with a mandatory header marking
+it generated. These specs are **never auto-merged** and are excluded from the normal `make test-e2e`
+suite (they only run under `TEST_DIR=./generated`).
+
+**Layer 3 — verification with inverted semantics** (`make security-verify`):
+
+```bash
+make security-verify
+```
+
+Runs the generated specs with **inverted meaning**: a spec that *passes* means the exploit
+reproduced, so the vulnerability is real. State is reset before each spec (`tests/e2e/security-base.ts`
++ the `/api/_test/reseed` endpoint) so one spec can't contaminate another. Reproduced findings are
+promoted to `qa-suggestions/{run-id}-security.md` with a trace and screenshot under
+`artifacts/security/{run-id}/`. By default it reports without blocking CI; set `SECURITY_BLOCK=1`
+to fail the build on confirmed findings.
+
+> **This does not replace a pentest.** It finds known vulnerability classes (IDOR, mass assignment,
+> authorization bypass, missing rate limiting, data exposure) over workflows the LLM can reason
+> about — not broken business logic or exploit chains. Every promoted finding must be confirmed by a
+> human before it's believed.
 
 ## Repository layout
 
@@ -174,7 +200,7 @@ Makefile             Entry point for every workflow — local, CI, and VM use th
 | 7 | QA agent consuming historical test artifacts | ✅ Done |
 | Sec 0 | Deterministic security scan (deps, secrets, headers) | ✅ Done |
 | Sec 1 | LLM workflow discovery (DeepSeek) | ✅ Done |
-| Sec 2–3 | Adversarial spec generation + verification | Designed |
+| Sec 2–3 | Adversarial spec generation + verification | ✅ Done |
 
 ## Notes
 
