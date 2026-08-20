@@ -1,9 +1,10 @@
 # Fases 0-5 + seguridad capa 0-1.
-.PHONY: up down test-mysql test-pgsql test-matrix test-unit test-e2e test-load test-all security-scan discover preflight dashboard
+.PHONY: up down test-mysql test-pgsql test-matrix test-unit test-e2e test-load test-all security-scan discover preflight dashboard sweep
 
 GIT_SHA := $(shell git rev-parse --short HEAD)
 TARGET  ?= prolicht
 RUN_ID  := $(shell date -u +%Y%m%dT%H%M%SZ)_$(GIT_SHA)
+VARIANT ?= baseline
 
 up:
 	docker compose up --build -d --wait
@@ -27,6 +28,7 @@ test-unit:
 	docker compose --profile unit run --build --rm preflight-test
 	docker compose --profile unit run --build --rm dashboard-test
 	docker compose --profile unit run --build --rm dashboard-web-test
+	docker compose --profile unit run --build --rm sweep-test
 
 test-e2e:
 	docker compose up -d --wait --build laravel-app frontend-vue
@@ -42,6 +44,12 @@ test-load:
 # Corre contra un proyecto EXTERNO: el target nunca se modifica. Remoto: DOCKER_HOST=tcp://...
 preflight:
 	RUN_ID=$(RUN_ID) GIT_SHA=$(GIT_SHA) TARGET=$(TARGET) docker compose --profile preflight run --build --rm preflight
+
+# Sweep diferencial del admin del target. El preflight es el gate: si no da verde, no se barre nada.
+sweep:
+	$(MAKE) preflight TARGET=$(TARGET)
+	RUN_ID=$(RUN_ID) GIT_SHA=$(GIT_SHA) TARGET=$(TARGET) VARIANT=$(VARIANT) BASELINE=$(BASELINE) \
+	  TARGET_SHA=$(TARGET_SHA) docker compose --profile sweep run --rm sweep
 
 # Dashboard: http://localhost:8088 — historial + preflight en vivo. Monta todo read-only.
 dashboard:

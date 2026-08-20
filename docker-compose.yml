@@ -176,6 +176,41 @@ services:
       target: base
     command: ["npx", "vitest", "run"]
 
+  # Sweep diferencial del admin del target (Capa A/B/C). Mismo patrón que playwright-runner
+  # (imagen oficial + volúmenes + npm ci en el command): sin Dockerfile de runtime, así la
+  # versión de Playwright tiene UNA sola fuente de verdad.
+  sweep:
+    profiles: [sweep]
+    image: mcr.microsoft.com/playwright:v1.62.1-noble   # DEBE coincidir con sweep/package.json
+    working_dir: /work
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./sweep:/work
+      - ./preflight:/preflight:ro           # espeja el árbol: `../../preflight/src/config` resuelve igual adentro que afuera
+      - ./security-agent:/security-agent:ro # solo Capa B: el LlmProvider
+      - ./tests/e2e:/e2e                    # Capa B escribe la cuarentena acá
+      - ./artifacts:/artifacts
+      - ./targets:/config:ro
+      - ${MATRIX_DIR:-./targets}:/matrix:ro  # Capa B: la matriz del target, SIEMPRE :ro
+    environment:
+      SCALINGQA_CONFIG: /config/${TARGET:-prolicht}.yml
+      MODE: ${MODE:-crawl}                  # crawl | diff | generate | areas
+      VARIANT: ${VARIANT:-baseline}
+      BASELINE: ${BASELINE:-}
+      ADMIN_E2E_USER: ${ADMIN_E2E_USER:-}   # desde .env (gitignored), igual que DEEPSEEK_API_KEY
+      ADMIN_E2E_PASS: ${ADMIN_E2E_PASS:-}
+      RUN_ID: ${RUN_ID:-dev}
+      GIT_SHA: ${GIT_SHA:-unknown}
+      TARGET_SHA: ${TARGET_SHA:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+    command: ["bash", "-c", "npm ci --loglevel=error && npm run start"]
+
+  sweep-test:
+    profiles: [unit]
+    build: { context: ., dockerfile: ./sweep/Dockerfile, target: base }   # contexto = root: copia preflight/
+    command: ["npx", "vitest", "run"]
+
   # Dashboard: historial de corridas (contrato de artefactos) + preflight EN VIVO.
   # Sin base de datos: el estado vive en el filesystem, el mismo que consume CI.
   dashboard:

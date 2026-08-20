@@ -13,3 +13,13 @@ target:
   readiness:
     path: /up
     timeout_ms: 5000
+  # Bloque del sweep (migration-sweep, Fase 1b). Solo NOMBRES de env vars — nunca credenciales
+  # literales; setear ADMIN_E2E_USER/ADMIN_E2E_PASS en .env (gitignored, nunca commiteado).
+  admin:
+    path: /admin
+    login_path: /admin/login
+    user_env: ADMIN_E2E_USER
+    pass_env: ADMIN_E2E_PASS
+    viewport:
+      width: 1600
+    themes: [light, dark]

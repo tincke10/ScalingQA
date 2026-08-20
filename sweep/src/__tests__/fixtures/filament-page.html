@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8" /><title>fixture — filament admin (v4 markup real)</title></head>
+<body>
+  <!-- Sidebar: grupo colapsado (display:none) — los <a href> SIGUEN en el DOM (design §2bis). -->
+  <aside class="fi-sidebar">
+    <ul>
+      <li class="fi-sidebar-group" data-group-label="Catálogo">
+        <ul style="display: none;">
+          <li class="fi-sidebar-item">
+            <a class="fi-sidebar-item-btn" href="/admin/products">Products</a>
+          </li>
+          <li class="fi-sidebar-item">
+            <a class="fi-sidebar-item-btn" href="/admin/colours-page">Colours</a>
+          </li>
+        </ul>
+      </li>
+      <li class="fi-sidebar-item">
+        <a class="fi-sidebar-item-btn" href="/admin">Dashboard</a>
+      </li>
+    </ul>
+  </aside>
+
+  <!-- Form: 3 tipos de campo (text-input, select, toggle) + 1 repeater con block labels. -->
+  <form>
+    <div class="fi-fo-field" data-field-wrapper>
+      <label class="fi-fo-field-label-content">Nombre<sup class="fi-fo-field-label-required-mark">*</sup></label>
+      <input type="text" wire:model="data.name" class="fi-fo-text-input" />
+    </div>
+    <div class="fi-fo-field" data-field-wrapper>
+      <label class="fi-fo-field-label-content">Categoría</label>
+      <select wire:model="data.category" class="fi-fo-select"></select>
+    </div>
+    <div class="fi-fo-field" data-field-wrapper>
+      <label class="fi-fo-field-label-content">Activo</label>
+      <input type="checkbox" wire:model="data.active" class="fi-fo-toggle" />
+    </div>
+    <div class="fi-fo-field" data-field-wrapper>
+      <label class="fi-fo-field-label-content">Galería</label>
+      <input type="hidden" name="gallery" class="fi-fo-repeater" />
+      <li class="fi-fo-repeater-item"></li>
+      <li class="fi-fo-repeater-item"></li>
+      <div class="fi-fo-builder-item-header-label">Imagen</div>
+    </div>
+  </form>
+
+  <!-- Tabla: filas reales de datos + summary row (NO debe matchear el selector) + paginación. -->
+  <table>
+    <tbody>
+      <tr class="fi-ta-row" wire:key="table.records.1">
+        <td><a class="fi-ta-col" href="/admin/products/1/edit">Producto 1</a></td>
+      </tr>
+      <tr class="fi-ta-row" wire:key="table.records.2">
+        <td><a class="fi-ta-col" href="/admin/products/2/edit">Producto 2</a></td>
+      </tr>
+      <tr class="fi-ta-row fi-ta-summary-row" wire:key="table.summary">
+        <td>Total</td>
+      </tr>
+    </tbody>
+  </table>
+  <nav class="fi-pagination">
+    <span class="fi-pagination-overview">Showing 1 to 2 of 2 results</span>
+  </nav>
+</body>
+</html>

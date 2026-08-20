@@ -86,10 +86,11 @@ Every run writes to `artifacts/{type}/{run-id}/` following a stable contract, wh
 ```text
 artifacts/e2e/{run-id}/     results.json, meta.json, output/   (traces & screenshots on failure)
 artifacts/load/{run-id}/    summary.json, meta.json
+artifacts/sweep/{run-id}/   snapshot.json, sweep.json, meta.json, screenshots/   (diff.json, report.md on candidate runs)
 ```
 
-`meta.json` records the timestamp, git SHA, database engine, and run type — enough to
-compare runs over time, which is what the QA agent consumes.
+`meta.json` records the timestamp, git SHA, database engine (optional — a sweep run has none),
+and run type — enough to compare runs over time, which is what the QA agent consumes.
 
 ## QA agent
 
@@ -169,6 +170,40 @@ to fail the build on confirmed findings.
 > authorization bypass, missing rate limiting, data exposure) over workflows the LLM can reason
 > about — not broken business logic or exploit chains. Every promoted finding must be confirmed by a
 > human before it's believed.
+
+## Migration sweep
+
+Differential verification of a target's admin panel — baseline vs. candidate — replacing a
+manual click-through checklist with an automated crawl + diff. Built for migrations (e.g. a
+Filament major-version bump): it crawls the admin, fingerprints every page (console errors,
+failed Livewire requests, form fields, dataset shape) with two variants of the same target,
+and diffs the two snapshots. The verdict comes from the **diff**, never from a single run.
+
+```bash
+echo 'ADMIN_E2E_USER=admin@example.com' >> .env   # gitignored; never committed
+echo 'ADMIN_E2E_PASS=secret' >> .env
+
+make sweep TARGET=prolicht VARIANT=baseline
+# ... after the migration lands on the candidate stack ...
+make sweep TARGET=prolicht VARIANT=candidate BASELINE=<run-id-from-the-baseline-run>
+```
+
+Env vars:
+
+| Var | Meaning |
+|-----|---------|
+| `TARGET` | Target config name under `targets/<name>.yml` (needs a `target.admin` block) |
+| `VARIANT` | `baseline` or `candidate` |
+| `BASELINE` | Run-id to diff the candidate against; defaults to the most recent baseline for `TARGET` |
+| `ADMIN_E2E_USER` / `ADMIN_E2E_PASS` | Admin credentials — names only, resolved from `.env` at runtime; never written to the target's yml |
+| `TARGET_SHA` | Optional git SHA of the target repo, recorded in `meta.json` for provenance |
+
+`make sweep` runs `make preflight TARGET=$(TARGET)` first as a gate — a `not_ready` target
+aborts before any login or crawl happens, same as every other runner in this repo. Exit
+codes follow the same convention as `preflight` and Playwright: `0` clean crawl / no
+structural regressions, `1` the diff found structural regressions (the tool worked, the
+target regressed), `2` the tool itself could not run (gate `not_ready`, bad args, login
+failed, missing baseline) — CI reads "1 = findings, 2 = tooling problem."
 
 ## Repository layout
 

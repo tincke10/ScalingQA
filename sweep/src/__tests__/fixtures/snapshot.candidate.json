@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "target": "prolicht",
+  "variant": "candidate",
+  "target_sha": "b1e4c90",
+  "base_url": "http://host.docker.internal",
+  "captured_at": "2026-08-20T21:14:03.221Z",
+  "asset_versions": { "filament": "4.11.1.0", "livewire": "3.7.15" },
+  "pages": [
+    {
+      "key": "edit:products",
+      "url": "/admin/products/01JE9F/edit",
+      "kind": "edit",
+      "resource": "products",
+      "status": 500,
+      "retried": false,
+      "error": null,
+      "console": [
+        {
+          "theme": "dark",
+          "type": "pageerror",
+          "text": "Uncaught TypeError: e.getRawState is not a function",
+          "normalised": "Uncaught TypeError: e.getRawState is not a function",
+          "count": 1
+        }
+      ],
+      "failed_requests": [],
+      "form_fingerprint": [
+        { "name": "name", "type": "text-input", "label": "Nombre", "required": true },
+        {
+          "name": "gallery",
+          "type": "repeater",
+          "label": "Galeria",
+          "required": false,
+          "container": { "items": 3, "blocks": [] }
+        }
+      ],
+      "screenshots": { "light": "screenshots/edit--products--light.png", "dark": "screenshots/edit--products--dark.png" }
+    },
+    {
+      "key": "index:products",
+      "url": "/admin/products",
+      "kind": "index",
+      "resource": "products",
+      "status": 200,
+      "retried": false,
+      "error": null,
+      "console": [],
+      "failed_requests": [],
+      "form_fingerprint": [],
+      "dataset_fingerprint": { "rows": 25, "total": 150, "first_record": "01JD7A" },
+      "screenshots": { "light": "screenshots/index--products--light.png", "dark": "screenshots/index--products--dark.png" }
+    }
+  ]
+}

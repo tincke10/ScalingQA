@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "target": "prolicht",
+  "variant": "baseline",
+  "target_sha": "9f2c1ab",
+  "base_url": "http://host.docker.internal",
+  "captured_at": "2026-08-20T19:30:00.000Z",
+  "asset_versions": { "filament": "4.11.1.0", "livewire": "3.7.15" },
+  "pages": [
+    {
+      "key": "edit:products",
+      "url": "/admin/products/01JD7A/edit",
+      "kind": "edit",
+      "resource": "products",
+      "status": 200,
+      "retried": false,
+      "error": null,
+      "console": [],
+      "failed_requests": [],
+      "form_fingerprint": [
+        { "name": "name", "type": "text-input", "label": "Nombre", "required": true },
+        { "name": "sku", "type": "text-input", "label": "SKU", "required": true },
+        {
+          "name": "gallery",
+          "type": "repeater",
+          "label": "Galeria",
+          "required": false,
+          "container": { "items": 3, "blocks": [] }
+        }
+      ],
+      "screenshots": { "light": "screenshots/edit--products--light.png", "dark": "screenshots/edit--products--dark.png" }
+    },
+    {
+      "key": "index:products",
+      "url": "/admin/products",
+      "kind": "index",
+      "resource": "products",
+      "status": 200,
+      "retried": false,
+      "error": null,
+      "console": [],
+      "failed_requests": [],
+      "form_fingerprint": [],
+      "dataset_fingerprint": { "rows": 25, "total": 143, "first_record": "01JD7A" },
+      "screenshots": { "light": "screenshots/index--products--light.png", "dark": "screenshots/index--products--dark.png" }
+    }
+  ]
+}

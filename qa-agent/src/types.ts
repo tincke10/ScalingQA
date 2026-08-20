@@ -1,10 +1,16 @@
 export type RunMeta = {
   run_id: string
-  run_type: 'e2e' | 'load'
+  run_type: 'e2e' | 'load' | 'sweep'
   timestamp: string
   git_sha: string
-  db_engine: string
+  // Un sweep no tiene motor de DB: escribir 'n/a' mentiría en el contrato, así que es opcional.
+  db_engine?: string
   scenario?: string
+  // Campos del sweep diferencial (migration-sweep); ausentes en e2e/load.
+  target?: string
+  variant?: 'baseline' | 'candidate'
+  target_sha?: string
+  baseline_run_id?: string
 }
 
 export type TestResult = {

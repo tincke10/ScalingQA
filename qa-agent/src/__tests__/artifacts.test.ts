@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { readE2ERuns, readLoadRuns } from '../artifacts'
+import type { RunMeta } from '../types'
 
 let root: string
 
@@ -147,5 +148,38 @@ describe('readLoadRuns', () => {
     })
 
     expect(readLoadRuns(root)[0].thresholdsPassed).toBe(false)
+  })
+})
+
+describe('artifacts/sweep/ es ignorado por los lectores de e2e y load', () => {
+  it('un run_type "sweep" con db_engine ausente sigue siendo un RunMeta válido', () => {
+    // El sweep no tiene motor de DB: db_engine debe ser opcional para no mentir en el contrato.
+    const sweepMeta: RunMeta = {
+      run_id: 'sweep-1',
+      run_type: 'sweep',
+      timestamp: '2026-08-20T00:00:00.000Z',
+      git_sha: 'abc1234',
+      target: 'prolicht',
+      variant: 'baseline',
+    }
+    expect(sweepMeta.db_engine).toBeUndefined()
+  })
+
+  it('readE2ERuns/readLoadRuns no leen artifacts/sweep/, aunque exista junto a e2e y load', () => {
+    writeRun('e2e', '1', {
+      'meta.json': meta('1', 'e2e'),
+      'results.json': { suites: [] },
+    })
+    writeRun('load', '1', {
+      'meta.json': meta('1', 'load'),
+      'summary.json': { metrics: {} },
+    })
+    writeRun('sweep', '1', {
+      'meta.json': { run_id: 'sweep-1', run_type: 'sweep', timestamp: '2026-08-20T00:00:00.000Z', git_sha: 'abc1234', target: 'prolicht', variant: 'baseline' },
+      'sweep.json': { pages: 1, regressions: 0 },
+    })
+
+    expect(readE2ERuns(root).map((r) => r.meta.run_id)).toEqual(['1'])
+    expect(readLoadRuns(root).map((r) => r.meta.run_id)).toEqual(['1'])
   })
 })
