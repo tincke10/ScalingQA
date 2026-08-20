@@ -35,6 +35,14 @@ describe('renderReportMd — determinístico, snapshot testing sobre el par sint
     expect(md).toContain('$ ')
   })
 
+  it('el hint usa el nombre PLANO del screenshot, también para page:/admin/... (hallazgo de Fase 2)', () => {
+    const renamed = structuredClone(result)
+    renamed.pages = renamed.pages.map((p) => (p.key === 'edit:products' ? { ...p, key: 'page:/admin/career/career-page' } : p))
+    const out = renderReportMd(renamed)
+    expect(out).toContain('screenshots/page--admin--career--career-page--light.png')
+    expect(out).not.toContain('page--/')
+  })
+
   it('es determinístico: dos renders con el mismo diff dan el mismo texto', () => {
     expect(renderReportMd(result)).toBe(md)
   })

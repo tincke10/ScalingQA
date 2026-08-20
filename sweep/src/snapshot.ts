@@ -127,6 +127,15 @@ const LONG_NUMBER = /\b\d{4,}\b/g
  * — nunca se descarta el crudo, un diff que muestra solo la versión sanitizada es imposible
  * de investigar (design §5).
  */
+/**
+ * Los items de repeater/builder llevan una key aleatoria en el wire:model
+ * (`description_sections.<uuid>.subtitle`) que cambia en CADA carga: misma versión, nombre
+ * distinto. Se reduce a `*` para que el nombre identifique al campo, no al render.
+ */
+export function normaliseFieldName(name: string): string {
+  return name.replace(UUID, '*').replace(ULID, '*')
+}
+
 export function normalise(text: string): string {
   let out = stripUrlHostAndQuery(text)
   out = trimTrailingLineCol(out)

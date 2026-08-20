@@ -1,5 +1,6 @@
 import { IGNORE_LIST_VERSION } from './ignore-list'
 import type { Diff, PageDiff, Verdict } from './diff'
+import { screenshotFileName } from './snapshot'
 import type { Snapshot } from './snapshot'
 
 /**
@@ -91,8 +92,8 @@ export function renderReportJson(diff: Diff): Report {
 }
 
 const screenshotHint = (diff: Diff, page: PageDiff): string => {
-  const baselineShot = `artifacts/sweep/${diff.baseline_run_id}/screenshots/${page.key.replace(/:/g, '--')}--light.png`
-  const candidateShot = `artifacts/sweep/${diff.candidate_run_id}/screenshots/${page.key.replace(/:/g, '--')}--light.png`
+  const baselineShot = `artifacts/sweep/${diff.baseline_run_id}/screenshots/${screenshotFileName(page.key, 'light')}`
+  const candidateShot = `artifacts/sweep/${diff.candidate_run_id}/screenshots/${screenshotFileName(page.key, 'light')}`
   return `$ open ${baselineShot} ${candidateShot}`
 }
 

@@ -1,4 +1,5 @@
 import { fieldTypeFromClasses } from './selectors'
+import { normaliseFieldName } from './snapshot'
 import type { FieldFingerprint } from './snapshot'
 
 /**
@@ -39,10 +40,10 @@ const CONTAINER_TYPES = new Set(['repeater', 'simple-repeater', 'table-repeater'
 
 const fieldName = (node: RawFieldNode, index: number): string => {
   const wireModel = node.wireModel ?? wireModelFrom(node.inputAttrs)
-  if (wireModel) return wireModel.startsWith('data.') ? wireModel.slice('data.'.length) : wireModel
-  if (node.nameAttr) return node.nameAttr
+  if (wireModel) return normaliseFieldName(wireModel.startsWith('data.') ? wireModel.slice('data.'.length) : wireModel)
+  if (node.nameAttr) return normaliseFieldName(node.nameAttr)
   const id = idFrom(node.inputAttrs)
-  if (id) return id
+  if (id) return normaliseFieldName(id)
   // Un campo sin identidad estable igual tiene que aparecer: su desaparición es señal.
   return `unnamed#${index}`
 }

@@ -1,4 +1,5 @@
 import { IGNORE_LIST_VERSION, isIgnored } from './ignore-list'
+import { normaliseFieldName } from './snapshot'
 import type { ConsoleEntry, FailedRequest, FieldFingerprint, PageKind, PageSnapshot, Snapshot, Theme } from './snapshot'
 
 /**
@@ -95,8 +96,10 @@ const requestFailedDeltasForTheme = (b: PageSnapshot, c: PageSnapshot, theme: Th
 type FieldChange = { name: string; field: 'type' | 'required' | 'container-blocks'; from: unknown; to: unknown }
 
 const formFingerprintDeltas = (b: PageSnapshot, c: PageSnapshot): Delta[] => {
-  const bFields = b.form_fingerprint
-  const cFields = c.form_fingerprint
+  // Se normaliza acá también (no solo al capturar): un baseline crawleado antes de la regla
+  // sigue comparable, igual que la ignore-list se aplica al diffear y no al capturar.
+  const bFields = b.form_fingerprint.map((f) => ({ ...f, name: normaliseFieldName(f.name) }))
+  const cFields = c.form_fingerprint.map((f) => ({ ...f, name: normaliseFieldName(f.name) }))
   const bNames = bFields.map((f) => f.name)
   const cNames = cFields.map((f) => f.name)
   const cNameSet = new Set(cNames)

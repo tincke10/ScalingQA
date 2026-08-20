@@ -74,6 +74,22 @@ describe('buildFormFingerprint — markup real de Filament 4', () => {
     expect(field.type).toBe('repeater')
   })
 
+  /**
+   * HALLAZGO DE FASE 2 (baseline-contra-baseline): los items de repeater/builder llevan una
+   * key aleatoria en el wire:model (`description_sections.<uuid>.subtitle`) que cambia en cada
+   * carga. Misma versión, 19 "regresiones" falsas. El nombre se normaliza: `<uuid>` → `*`.
+   */
+  it('normaliza las keys aleatorias de items de repeater/builder a *', () => {
+    const [a, b, c] = buildFormFingerprint([
+      node({ wireModel: 'data.description_sections.eb83ad39-7f98-471c-8668-62b56e36c3f7.subtitle' }),
+      node({ inputAttrs: [['wire:model.blur', 'data.content_blocks.91c63a80-f0d8-4580-9107-7bda41a898c1.data.title']] }),
+      node({ wireModel: 'data.slides.01J5Z3N6Q8X2Y4W6V8T0R2P4M6.title' }),
+    ])
+    expect(a.name).toBe('description_sections.*.subtitle')
+    expect(b.name).toBe('content_blocks.*.data.title')
+    expect(c.name).toBe('slides.*.title')
+  })
+
   it('el viejo wireModel explícito sigue teniendo prioridad (compatibilidad con snapshots previos)', () => {
     const [field] = buildFormFingerprint([node({ wireModel: 'data.title', inputAttrs: [['id', 'form.other']] })])
     expect(field.name).toBe('title')

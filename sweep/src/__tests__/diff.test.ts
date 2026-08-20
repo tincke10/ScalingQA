@@ -26,6 +26,35 @@ describe('diff — función pura', () => {
     expect(result.dataset_warning).toBe(false)
   })
 
+  /**
+   * HALLAZGO DE FASE 2: snapshots capturados ANTES de normalizar nombres traen las keys
+   * aleatorias de repeater (`x.<uuid>.y`). El diff las normaliza al comparar — así el baseline
+   * ya crawleado sigue sirviendo y la regla vive en un solo lugar, como la ignore-list.
+   */
+  it('nombres de campo que solo difieren en la key aleatoria del item NO son field-missing/added', () => {
+    const withKey = (snap: Snapshot, uuid: string): Snapshot =>
+      structuredClone({
+        ...snap,
+        pages: snap.pages.map((p) =>
+          p.key !== 'edit:products'
+            ? p
+            : {
+                ...p,
+                form_fingerprint: [
+                  ...p.form_fingerprint,
+                  { name: `description_sections.${uuid}.subtitle`, type: 'text-input', label: 'Subtitle', required: false },
+                ],
+              },
+        ),
+      })
+    const a = withKey(baseline, 'eb83ad39-7f98-471c-8668-62b56e36c3f7')
+    const b = withKey(baseline, 'b749020a-44a7-44fa-a299-055fab1b579d')
+
+    const result = diff(a, b, runIds)
+    expect(result.totals.regression).toBe(0)
+    expect(result.pages.find((p) => p.key === 'edit:products')?.deltas).toEqual([])
+  })
+
   it('rechaza comparar schema_version distintos con error claro', () => {
     const bumped: Snapshot = { ...candidate, schema_version: 2 }
     expect(() => diff(baseline, bumped, runIds)).toThrow(/schema_version incompatible \(1 vs 2\)/)
