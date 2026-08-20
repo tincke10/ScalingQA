@@ -176,6 +176,41 @@ services:
       target: base
     command: ["npx", "vitest", "run"]
 
+  # Dashboard: historial de corridas (contrato de artefactos) + preflight EN VIVO.
+  # Sin base de datos: el estado vive en el filesystem, el mismo que consume CI.
+  dashboard:
+    profiles: [dashboard]
+    build:
+      context: .
+      dockerfile: ./dashboard/Dockerfile
+    ports:
+      - "${DASHBOARD_PORT:-8088}:8080"
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./artifacts:/artifacts:ro
+      - ./qa-suggestions:/qa-suggestions:ro
+      - ./targets:/config:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOCKER_HOST: ${DOCKER_HOST:-}
+
+  dashboard-test:
+    profiles: [unit]
+    build:
+      context: .
+      dockerfile: ./dashboard/Dockerfile
+      target: base
+    command: ["npx", "vitest", "run"]
+
+  dashboard-web-test:
+    profiles: [unit]
+    build:
+      context: .
+      dockerfile: ./dashboard/Dockerfile
+      target: web-build
+    command: ["npx", "vitest", "run"]
+
   qa-agent:
     profiles: [qa]
     build: ./qa-agent

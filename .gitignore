@@ -11,3 +11,6 @@ vendor/
 
 # specs adversariales generados por el LLM (Capa 2): artefactos, no fuente. Zona de cuarentena.
 tests/e2e/generated/
+
+# SPA del dashboard compilada: la genera el Dockerfile (stage web-build), nunca se commitea
+dashboard/web/dist/

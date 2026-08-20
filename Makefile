@@ -1,5 +1,5 @@
 # Fases 0-5 + seguridad capa 0-1.
-.PHONY: up down test-mysql test-pgsql test-matrix test-unit test-e2e test-load test-all security-scan discover preflight
+.PHONY: up down test-mysql test-pgsql test-matrix test-unit test-e2e test-load test-all security-scan discover preflight dashboard
 
 GIT_SHA := $(shell git rev-parse --short HEAD)
 TARGET  ?= prolicht
@@ -25,6 +25,8 @@ test-unit:
 	docker compose --profile unit run --build --rm qa-agent-test
 	docker compose --profile unit run --build --rm security-agent-test
 	docker compose --profile unit run --build --rm preflight-test
+	docker compose --profile unit run --build --rm dashboard-test
+	docker compose --profile unit run --build --rm dashboard-web-test
 
 test-e2e:
 	docker compose up -d --wait --build laravel-app frontend-vue
@@ -40,6 +42,11 @@ test-load:
 # Corre contra un proyecto EXTERNO: el target nunca se modifica. Remoto: DOCKER_HOST=tcp://...
 preflight:
 	RUN_ID=$(RUN_ID) GIT_SHA=$(GIT_SHA) TARGET=$(TARGET) docker compose --profile preflight run --build --rm preflight
+
+# Dashboard: http://localhost:8088 — historial + preflight en vivo. Monta todo read-only.
+dashboard:
+	docker compose --profile dashboard up --build -d dashboard
+	@echo "dashboard en http://localhost:$${DASHBOARD_PORT:-8088}"
 
 # Analiza el historial de artefactos y escribe el informe en qa-suggestions/
 qa-report:
