@@ -149,6 +149,33 @@ services:
     # Sin `playwright install`: los browsers ya vienen en la imagen oficial
     command: ["bash", "-c", "npm ci --loglevel=error && npx playwright test ${PW_GREP:+--grep \"$PW_GREP\"}"]
 
+  # Preflight: ¿el target está listo para testear? Habla el Docker Engine API por el socket
+  # montado — sin CLI de docker adentro de la imagen. Para un target remoto se pasa
+  # DOCKER_HOST=tcp://server:2375 y es exactamente el mismo código.
+  preflight:
+    profiles: [preflight]
+    build: ./preflight
+    extra_hosts:
+      # el localhost del HOST no es el localhost de este container: los targets locales se
+      # apuntan a host.docker.internal
+      - 'host.docker.internal:host-gateway'
+    volumes:
+      - ./artifacts:/artifacts
+      - ./targets:/config:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      SCALINGQA_CONFIG: /config/${TARGET:-prolicht}.yml
+      RUN_ID: ${RUN_ID:-dev}
+      GIT_SHA: ${GIT_SHA:-unknown}
+      DOCKER_HOST: ${DOCKER_HOST:-}
+
+  preflight-test:
+    profiles: [unit]
+    build:
+      context: ./preflight
+      target: base
+    command: ["npx", "vitest", "run"]
+
   qa-agent:
     profiles: [qa]
     build: ./qa-agent

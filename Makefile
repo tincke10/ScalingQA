@@ -1,7 +1,8 @@
 # Fases 0-5 + seguridad capa 0-1.
-.PHONY: up down test-mysql test-pgsql test-matrix test-unit test-e2e test-load test-all security-scan discover
+.PHONY: up down test-mysql test-pgsql test-matrix test-unit test-e2e test-load test-all security-scan discover preflight
 
 GIT_SHA := $(shell git rev-parse --short HEAD)
+TARGET  ?= prolicht
 RUN_ID  := $(shell date -u +%Y%m%dT%H%M%SZ)_$(GIT_SHA)
 
 up:
@@ -23,6 +24,7 @@ test-unit:
 	docker compose --profile unit run --build --rm frontend-react-test
 	docker compose --profile unit run --build --rm qa-agent-test
 	docker compose --profile unit run --build --rm security-agent-test
+	docker compose --profile unit run --build --rm preflight-test
 
 test-e2e:
 	docker compose up -d --wait --build laravel-app frontend-vue
@@ -33,6 +35,11 @@ test-load:
 	docker compose up -d --wait laravel-app
 	docker compose exec laravel-app php artisan migrate:fresh --seed --force
 	RUN_ID=$(RUN_ID) GIT_SHA=$(GIT_SHA) docker compose --profile load up --exit-code-from k6-runner k6-runner
+
+# ¿El target está listo para testear? Veredicto por HTTP; los containers explican el porqué.
+# Corre contra un proyecto EXTERNO: el target nunca se modifica. Remoto: DOCKER_HOST=tcp://...
+preflight:
+	RUN_ID=$(RUN_ID) GIT_SHA=$(GIT_SHA) TARGET=$(TARGET) docker compose --profile preflight run --build --rm preflight
 
 # Analiza el historial de artefactos y escribe el informe en qa-suggestions/
 qa-report:

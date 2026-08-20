@@ -1,0 +1,15 @@
+# Target externo: prolicht. Este archivo vive del lado de ScalingQA — el proyecto no se toca.
+target:
+  name: prolicht
+  # Solo para los escaneos de Capa 0; se monta read-only. Ojo: la instancia que corre puede
+  # venir de OTRO directorio (worktree) — preflight lo descubre por los labels de compose.
+  repo: /Users/tincho/Documents/Project.nosync/prolicht
+  base_url: http://host.docker.internal   # `localhost` del host visto desde el container de preflight
+  # compose_project: prolicht   # opcional: sin esto se infiere por el puerto de base_url
+  # stack: laravel-sail         # opcional: sin esto se detecta por el runtime (servicio laravel.test
+  #                             # o imagen sail-*). Declararlo pisa la detección, y es la única forma
+  #                             # de que los tips salgan bien cuando NO hay containers levantados.
+  #                             # Válidos: laravel-sail, docker-compose.
+  readiness:
+    path: /up
+    timeout_ms: 5000
