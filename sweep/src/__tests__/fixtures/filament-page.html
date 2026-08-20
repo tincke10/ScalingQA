@@ -8,10 +8,15 @@
       <li class="fi-sidebar-group" data-group-label="Catálogo">
         <ul style="display: none;">
           <li class="fi-sidebar-item">
-            <a class="fi-sidebar-item-btn" href="/admin/products">Products</a>
+            <!-- Filament renderiza hrefs ABSOLUTOS (hallazgo de Fase 2): el fixture tiene que imitarlo -->
+            <a class="fi-sidebar-item-btn" href="http://localhost/admin/products">Products</a>
           </li>
           <li class="fi-sidebar-item">
             <a class="fi-sidebar-item-btn" href="/admin/colours-page">Colours</a>
+          </li>
+          <li class="fi-sidebar-item">
+            <!-- una Page anidada (ManageConfiguratorPage): NO es un Resource -->
+            <a class="fi-sidebar-item-btn" href="http://localhost/admin/customized-solutions/configurator">Configurator</a>
           </li>
         </ul>
       </li>
@@ -23,17 +28,34 @@
 
   <!-- Form: 3 tipos de campo (text-input, select, toggle) + 1 repeater con block labels. -->
   <form>
-    <div class="fi-fo-field" data-field-wrapper>
-      <label class="fi-fo-field-label-content">Nombre<sup class="fi-fo-field-label-required-mark">*</sup></label>
-      <input type="text" wire:model="data.name" class="fi-fo-text-input" />
+    <!-- Markup REAL de Filament 4 (capturado de prolicht, hallazgo de Fase 2): el tipo vive en un div
+         intermedio (fi-input-wrp fi-fo-text-input), el input trae wire:model CON modificador y id form.<campo> -->
+    <div data-field-wrapper="" class="fi-fo-field">
+      <div class="fi-fo-field-label-col">
+        <div class="fi-fo-field-label-ctn">
+          <label for="form.name" class="fi-fo-field-label">
+            <span class="fi-fo-field-label-content">Nombre<sup class="fi-fo-field-label-required-mark">*</sup></span>
+          </label>
+        </div>
+      </div>
+      <div class="fi-fo-field-content-col">
+        <div class="fi-input-wrp fi-fo-text-input">
+          <div class="fi-input-wrp-content-ctn"><input id="form.name" type="text" wire:model.blur="data.name" class="fi-input" /></div>
+        </div>
+      </div>
     </div>
-    <div class="fi-fo-field" data-field-wrapper>
-      <label class="fi-fo-field-label-content">Categoría</label>
-      <select wire:model="data.category" class="fi-fo-select"></select>
+    <div data-field-wrapper="" class="fi-fo-field">
+      <div class="fi-fo-field-label-col"><label class="fi-fo-field-label"><span class="fi-fo-field-label-content">Categoría</span></label></div>
+      <div class="fi-fo-field-content-col">
+        <div class="fi-input-wrp fi-fo-select"><select id="form.category" wire:model.live="data.category" class="fi-select-input"></select></div>
+      </div>
     </div>
-    <div class="fi-fo-field" data-field-wrapper>
-      <label class="fi-fo-field-label-content">Activo</label>
-      <input type="checkbox" wire:model="data.active" class="fi-fo-toggle" />
+    <div data-field-wrapper="" class="fi-fo-field">
+      <div class="fi-fo-field-label-col"><label class="fi-fo-field-label"><span class="fi-fo-field-label-content">Activo</span></label></div>
+      <div class="fi-fo-field-content-col">
+        <!-- el toggle de Filament no es un <input>: es un button[role=switch] con x-data -->
+        <button type="button" role="switch" aria-checked="false" id="form.active" x-data="{}" class="fi-fo-toggle"></button>
+      </div>
     </div>
     <div class="fi-fo-field" data-field-wrapper>
       <label class="fi-fo-field-label-content">Galería</label>

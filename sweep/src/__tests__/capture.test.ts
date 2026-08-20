@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import vm from 'node:vm'
 import { aggregateConsoleEntries, classifyFailedRequest, firstRecordHref, shouldRetryCapture, buildThemeInitScript } from '../capture'
 
 describe('aggregateConsoleEntries — pura', () => {
@@ -132,5 +133,26 @@ describe('buildThemeInitScript — pura', () => {
   it('genera el script que fija localStorage.theme al tema pedido', () => {
     expect(buildThemeInitScript('dark')).toContain("localStorage.setItem('theme', \"dark\")")
     expect(buildThemeInitScript('light')).toContain("localStorage.setItem('theme', \"light\")")
+  })
+
+  it('fija el tema cuando localStorage funciona', () => {
+    const store: Record<string, string> = {}
+    vm.runInNewContext(buildThemeInitScript('dark'), { localStorage: { setItem: (k: string, v: string) => (store[k] = v) } })
+    expect(store.theme).toBe('dark')
+  })
+
+  /**
+   * HALLAZGO DE FASE 2: el init script corre en TODOS los documentos del contexto, incluidos
+   * iframes sandboxed y páginas de error de Chromium, donde `localStorage` tira
+   * "Access is denied for this document". Eso apareció como 50 `pageerror` nuestros en el
+   * snapshot: ruido autoinfligido. La instrumentación NUNCA puede generar consola.
+   */
+  it('no explota si localStorage está denegado (iframe sandboxed / página de error)', () => {
+    const denied = {
+      get localStorage() {
+        throw new Error("Failed to read the 'localStorage' property from 'Window': Access is denied for this document.")
+      },
+    }
+    expect(() => vm.runInNewContext(buildThemeInitScript('light'), denied)).not.toThrow()
   })
 })

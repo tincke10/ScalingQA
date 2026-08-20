@@ -45,10 +45,16 @@ describe('sweep-selectors.spec — selectors.ts contra markup real de Filament (
 
   it('el sidebar se lee sin clickear — el grupo colapsado no saca los <a href> del DOM', async () => {
     const hrefs = await readSidebarHrefs(page)
-    expect(hrefs.sort()).toEqual(['/admin', '/admin/colours-page', '/admin/products'])
+    // tal cual vienen del DOM: Filament mezcla absolutos y relativos, el crawler no los toca acá
+    expect(hrefs.sort()).toEqual([
+      '/admin',
+      '/admin/colours-page',
+      'http://localhost/admin/customized-solutions/configurator',
+      'http://localhost/admin/products',
+    ])
   })
 
-  it('buildCrawlPlan sobre los hrefs reales produce el plan esperado (incluye el slug custom)', async () => {
+  it('buildCrawlPlan sobre los hrefs reales produce el plan esperado (slug custom, href absoluto y Page anidada)', async () => {
     const hrefs = await readSidebarHrefs(page)
     const plan = buildCrawlPlan(hrefs, { adminPath: '/admin', exclude: ['/logout', '/admin/logout'] })
     expect(
@@ -57,6 +63,9 @@ describe('sweep-selectors.spec — selectors.ts contra markup real de Filament (
         .map((s) => s.resource)
         .sort(),
     ).toEqual(['colours-page', 'products'])
+    expect(plan.filter((s) => s.kind === 'page').map((s) => s.path)).toEqual(['/admin/customized-solutions/configurator'])
+    // el path del plan es RELATIVO aunque el href fuera absoluto: se navega con base_url + path
+    expect(plan.find((s) => s.kind === 'index' && s.resource === 'products')?.path).toBe('/admin/products')
   })
 
   it('extractFormNodes + buildFormFingerprint encuentran los 4 campos del form (3 tipos + repeater)', async () => {

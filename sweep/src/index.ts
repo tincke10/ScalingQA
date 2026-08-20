@@ -5,7 +5,7 @@ import { parse as parseYaml } from 'yaml'
 import { chromium, type Browser, type BrowserContext } from 'playwright'
 import { parseSweepConfig, credentialHeuristicWarning, type SweepTargetConfig } from './config'
 import { login, resolveCredentials, saveStorageState, type Credentials } from './login'
-import { buildCrawlPlan, readSidebarHrefs, resolveEditStep } from './discover'
+import { buildCrawlPlan, planAnomaly, readSidebarHrefs, resolveEditStep } from './discover'
 import { capturePage, createThemeContext, firstRecordHref } from './capture'
 import { diff as diffSnapshots, type Diff } from './diff'
 import { buildSweepSummary, renderReportJson, renderReportMd } from './report'
@@ -122,6 +122,10 @@ async function crawl(input: {
   }
 
   const plan = buildCrawlPlan(hrefs, { adminPath: config.admin.path, exclude: config.admin.exclude })
+
+  // Sin un solo Resource no hay baseline: cortar acá (exit 2) evita escribir un snapshot "limpio" vacío.
+  const anomaly = planAnomaly(plan)
+  if (anomaly) throw new Error(anomaly)
 
   const pages: PageSnapshot[] = []
   const assetUrls: string[] = []

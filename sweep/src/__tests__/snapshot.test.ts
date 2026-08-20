@@ -1,5 +1,25 @@
 import { describe, it, expect } from 'vitest'
-import { SNAPSHOT_SCHEMA_VERSION, normalise, pageKey } from '../snapshot'
+import { SNAPSHOT_SCHEMA_VERSION, normalise, pageKey, screenshotFileName } from '../snapshot'
+
+/**
+ * HALLAZGO DE FASE 2: `page:/admin` → `page--/admin--light.png` creaba un SUBDIRECTORIO
+ * `page--/` en screenshots/. El nombre del archivo no puede contener separadores de path.
+ */
+describe('screenshotFileName — un archivo plano por página y tema', () => {
+  it('reemplaza ":" y "/" por "--" y no deja separadores ni guiones colgando', () => {
+    expect(screenshotFileName('page:/admin', 'light')).toBe('page--admin--light.png')
+    expect(screenshotFileName('index:products', 'dark')).toBe('index--products--dark.png')
+    expect(screenshotFileName('page:/admin/customized-solutions/configurator', 'light')).toBe(
+      'page--admin--customized-solutions--configurator--light.png',
+    )
+  })
+
+  it('nunca produce un path con directorio', () => {
+    for (const key of ['page:/admin', 'page:/admin/a/b/c', 'edit:products']) {
+      expect(screenshotFileName(key, 'light')).not.toMatch(/[/\\]/)
+    }
+  })
+})
 
 describe('SNAPSHOT_SCHEMA_VERSION', () => {
   it('empieza en 1', () => {

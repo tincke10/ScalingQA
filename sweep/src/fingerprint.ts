@@ -14,18 +14,35 @@ export type RawFieldNode = {
   requiredMarked: boolean
   inputTag: string | null
   inputType: string | null
-  /** de acá sale el tipo Filament (fi-fo-*) */
+  /** clases del input; en Filament 4 real el tipo NO está acá sino en `componentClasses` */
   inputClasses: string[]
+  /** clases del div del componente (`fi-input-wrp fi-fo-text-input`): de acá sale el tipo */
+  componentClasses?: string[]
+  /** atributos crudos del input: `wire:model.blur`, `id=form.name`… El mapeo es puro, acá. */
+  inputAttrs?: [string, string][]
   /** repeater / builder */
   itemCount: number | null
   blockTypes: string[]
 }
 
+/** `wire:model`, `wire:model.blur`, `wire:model.live.debounce.500ms`… → el valor */
+const wireModelFrom = (attrs: [string, string][] = []): string | null =>
+  attrs.find(([name]) => name === 'wire:model' || name.startsWith('wire:model.'))?.[1] ?? null
+
+/** Filament pone `id="form.<campo>"` en el control: último recurso antes de `unnamed#N` */
+const idFrom = (attrs: [string, string][] = []): string | null => {
+  const id = attrs.find(([name]) => name === 'id')?.[1] ?? null
+  return id ? (id.startsWith('form.') ? id.slice('form.'.length) : id) : null
+}
+
 const CONTAINER_TYPES = new Set(['repeater', 'simple-repeater', 'table-repeater', 'builder'])
 
 const fieldName = (node: RawFieldNode, index: number): string => {
-  if (node.wireModel) return node.wireModel.startsWith('data.') ? node.wireModel.slice('data.'.length) : node.wireModel
+  const wireModel = node.wireModel ?? wireModelFrom(node.inputAttrs)
+  if (wireModel) return wireModel.startsWith('data.') ? wireModel.slice('data.'.length) : wireModel
   if (node.nameAttr) return node.nameAttr
+  const id = idFrom(node.inputAttrs)
+  if (id) return id
   // Un campo sin identidad estable igual tiene que aparecer: su desaparición es señal.
   return `unnamed#${index}`
 }
@@ -34,9 +51,16 @@ const fieldName = (node: RawFieldNode, index: number): string => {
  * `RawFieldNode[]` -> `FieldFingerprint[]`. El type es 'unknown' si ninguna clase fi-fo-*
  * matchea — un 'unknown' no rompe el diff, compara 'unknown' contra 'unknown'.
  */
+const typeFrom = (classes: string[] = []): string | null => {
+  const type = fieldTypeFromClasses(classes)
+  return type === 'unknown' ? null : type
+}
+
 export function buildFormFingerprint(nodes: RawFieldNode[]): FieldFingerprint[] {
   return nodes.map((node, index) => {
-    const type = fieldTypeFromClasses(node.inputClasses)
+    // el componente manda: un text-input ANIDADO en un repeater no convierte al repeater en
+    // text-input. Por eso se resuelve por NIVEL (componente → input → wrapper), no mezclando clases.
+    const type = typeFrom(node.componentClasses) ?? typeFrom(node.inputClasses) ?? typeFrom(node.wrapperClasses) ?? 'unknown'
     const field: FieldFingerprint = {
       name: fieldName(node, index),
       type,

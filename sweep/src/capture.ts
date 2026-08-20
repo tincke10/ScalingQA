@@ -4,7 +4,7 @@ import type { CrawlStep } from './discover'
 import { buildFormFingerprint, parseRecordCount, type RawFieldNode } from './fingerprint'
 import { selectorsFor } from './selectors'
 import type { SweepTargetConfig } from './config'
-import { normalise, pageKey } from './snapshot'
+import { normalise, pageKey, screenshotFileName } from './snapshot'
 import type { ConsoleEntry, DatasetFingerprint, FailedRequest, PageKind, PageSnapshot, Theme } from './snapshot'
 
 /**
@@ -81,7 +81,9 @@ export function shouldRetryCapture(error: unknown): boolean {
  * `localStorage`, así que pisa lo que haya restaurado el `storageState` (design §8, ADR-6b).
  */
 export function buildThemeInitScript(theme: Theme): string {
-  return `localStorage.setItem('theme', ${JSON.stringify(theme)});`
+  // try/catch: el init script corre en TODOS los documentos (iframes sandboxed, páginas de error
+  // de Chromium) y ahí `localStorage` tira. La instrumentación nunca puede sumar consola propia.
+  return `try { localStorage.setItem('theme', ${JSON.stringify(theme)}); } catch (e) {}`
 }
 
 // ---------------------------------------------------------------------------------------
@@ -116,6 +118,18 @@ export async function extractFormNodes(page: Page, major: 4 | 5 = 4): Promise<Ra
         const input = wrapper.querySelector(sel.input)
         const label = wrapper.querySelector(sel.label)
         const required = wrapper.querySelector(sel.required) !== null
+        // El tipo (fi-fo-text-input, fi-fo-select, ...) vive en el div del COMPONENTE, entre el
+        // wrapper y el input. Se toma el primero que pertenezca a ESTE wrapper (no a un campo
+        // anidado de un repeater) y que no sea parte del layout del wrapper (fi-fo-field-*).
+        // OJO: acá adentro NO se declaran funciones con nombre (`const f = () => ...`): esbuild/tsx
+        // las envuelve con un helper `__name` que no existe en el browser y el $$eval explota con
+        // "ReferenceError: __name is not defined" — vitest no lo reproduce, la corrida real sí.
+        const component = [...wrapper.querySelectorAll('[class*="fi-fo-"]')].find(
+          (el) =>
+            el.closest('[data-field-wrapper]') === wrapper &&
+            [...el.classList].some((c) => /^fi-fo-(?!field$|field-)/.test(c)),
+        )
+        const inputAttrs: [string, string][] = input ? [...input.attributes].map((a) => [a.name, a.value]) : []
         const repeaterItems = wrapper.querySelectorAll(sel.repeaterItem).length
         const builderItems = wrapper.querySelectorAll(sel.builderItem).length
         const blockTypes = [...wrapper.querySelectorAll(sel.builderBlockLabel)]
@@ -131,6 +145,8 @@ export async function extractFormNodes(page: Page, major: 4 | 5 = 4): Promise<Ra
           inputTag: input?.tagName.toLowerCase() ?? null,
           inputType: input?.getAttribute('type') ?? null,
           inputClasses: input ? [...input.classList] : [],
+          componentClasses: component ? [...component.classList] : [],
+          inputAttrs,
           itemCount: repeaterItems + builderItems || null,
           blockTypes,
         }
@@ -195,7 +211,16 @@ async function captureThemePass(
     }
   })
 
-  const response = await page.goto(url, { timeout: opts.timeoutMs, waitUntil: 'networkidle' }).catch(() => null)
+  // Sin catch: una navegación que falla (URL inválida, conexión rechazada, timeout) tiene que
+  // llegar al try/catch de `capturePage`, que reintenta y deja `error` en el snapshot. Tragarla
+  // acá producía `status: null, error: null` — un fallo invisible (hallazgo de Fase 2).
+  let response
+  try {
+    response = await page.goto(url, { timeout: opts.timeoutMs, waitUntil: 'networkidle' })
+  } catch (error) {
+    await page.close().catch(() => {})
+    throw error
+  }
   const status = response?.status() ?? null
 
   const formNodes = opts.wantsFormAndDataset ? await extractFormNodes(page, opts.major).catch(() => []) : []
@@ -252,7 +277,7 @@ export async function capturePage(params: {
       for (const theme of themes) {
         const context = contexts[theme]
         if (!context) continue
-        const screenshotFile = nodePath.join(runDir, 'screenshots', `${snapshotKey.replace(/:/g, '--')}--${theme}.png`)
+        const screenshotFile = nodePath.join(runDir, 'screenshots', screenshotFileName(snapshotKey, theme))
         passes[theme] = await captureThemePass(context, url, theme, {
           timeoutMs: config.admin.page_timeout_ms,
           screenshotFile,

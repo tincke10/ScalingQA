@@ -6,7 +6,7 @@ import { selectorsFor } from './selectors'
  * `resolveEditStep` son PUROS, testeados sin browser. `readSidebarHrefs` es IO — cubierta
  * por el smoke 1.14, no por vitest.
  */
-export type CrawlKind = 'dashboard' | 'index' | 'create' | 'edit'
+export type CrawlKind = 'dashboard' | 'index' | 'create' | 'edit' | 'page'
 
 export type CrawlStep = {
   kind: CrawlKind
@@ -19,10 +19,31 @@ export type CrawlStep = {
 export type UrlClass =
   | { kind: 'dashboard'; slug: null; path: string }
   | { kind: 'resource'; slug: string; path: string }
+  /** path anidado (`/admin/customized-solutions/configurator`): una Page, no un Resource */
+  | { kind: 'page'; slug: null; path: string }
   | { kind: 'excluded'; slug: null; path: string }
 
 const stripTrailingSlash = (value: string): string => value.replace(/\/+$/, '')
 const stripQueryAndHash = (value: string): string => value.split('?')[0].split('#')[0]
+
+/**
+ * Filament renderiza los hrefs del sidebar ABSOLUTOS (`http://localhost/admin/products`) —
+ * hallazgo de la primera corrida real. Acá todo se reduce al pathname: el crawler navega con
+ * `base_url + path`, nunca con el host que vino en el href.
+ */
+export const pathOf = (href: string): string => {
+  const raw = /^[a-z][a-z0-9+.-]*:\/\//i.test(href) ? new URL(href).pathname : stripQueryAndHash(href)
+  return stripTrailingSlash(raw)
+}
+
+/** segmentos después del admin path; `null` si el href no vive bajo el admin */
+const segmentsUnder = (href: string, adminPath: string): string[] | null => {
+  const path = pathOf(href)
+  const base = stripTrailingSlash(adminPath)
+  if (path === base) return []
+  if (!path.startsWith(`${base}/`)) return null
+  return path.slice(base.length + 1).split('/').filter(Boolean)
+}
 
 /**
  * El slug SALE del href, nunca se deriva de otra cosa — 5 de 41 Resources de prolicht tienen
@@ -30,22 +51,30 @@ const stripQueryAndHash = (value: string): string => value.split('?')[0].split('
  * esos cinco en silencio.
  */
 export function slugFromHref(href: string, adminPath: string): string | null {
-  const path = stripTrailingSlash(stripQueryAndHash(href))
-  const base = stripTrailingSlash(adminPath)
-  if (path === base) return null
-  if (!path.startsWith(`${base}/`)) return null
-  const rest = path.slice(base.length + 1)
-  const [slug] = rest.split('/')
-  return slug || null
+  const segments = segmentsUnder(href, adminPath)
+  return segments?.[0] ?? null
 }
 
 export function classifyUrl(href: string, opts: { adminPath: string; exclude: string[] }): UrlClass {
-  const path = stripTrailingSlash(stripQueryAndHash(href)) || opts.adminPath
+  const path = pathOf(href) || opts.adminPath
   if (opts.exclude.some((pattern) => path.startsWith(pattern))) return { kind: 'excluded', slug: null, path }
 
-  const slug = slugFromHref(href, opts.adminPath)
-  if (slug === null) return { kind: 'dashboard', slug: null, path: opts.adminPath }
-  return { kind: 'resource', slug, path }
+  const segments = segmentsUnder(href, opts.adminPath)
+  if (!segments || segments.length === 0) return { kind: 'dashboard', slug: null, path: opts.adminPath }
+  // un solo segmento es un Resource (index/create/edit); más de uno es una Page con URL propia
+  if (segments.length === 1) return { kind: 'resource', slug: segments[0], path }
+  return { kind: 'page', slug: null, path }
+}
+
+/**
+ * Un plan sin un solo Resource no es un baseline: es un selector de sidebar roto o un login
+ * que falló en silencio (hallazgo de la primera corrida real: 1 página, exit 0). Devuelve el
+ * motivo para que `index.ts` corte con exit 2 en vez de escribir un baseline "limpio".
+ */
+export function planAnomaly(plan: CrawlStep[]): string | null {
+  if (plan.some((s) => s.kind === 'index')) return null
+  const kinds = plan.map((s) => s.kind).join(', ') || 'nada'
+  return `el plan no tiene ningún Resource (solo: ${kinds}) — sin recursos no hay baseline. ¿Selector de sidebar desactualizado, login fallido en silencio, o el usuario no ve el menú?`
 }
 
 /**
@@ -56,6 +85,7 @@ export function classifyUrl(href: string, opts: { adminPath: string; exclude: st
 export function buildCrawlPlan(hrefs: string[], opts: { adminPath: string; exclude: string[] }): CrawlStep[] {
   const steps: CrawlStep[] = []
   const seenResources = new Set<string>()
+  const seenPages = new Set<string>()
   let sawDashboard = false
 
   for (const href of hrefs) {
@@ -66,6 +96,13 @@ export function buildCrawlPlan(hrefs: string[], opts: { adminPath: string; exclu
       if (sawDashboard) continue
       sawDashboard = true
       steps.push({ kind: 'dashboard', resource: null, path: classified.path })
+      continue
+    }
+
+    if (classified.kind === 'page') {
+      if (seenPages.has(classified.path)) continue
+      seenPages.add(classified.path)
+      steps.push({ kind: 'page', resource: null, path: classified.path })
       continue
     }
 
@@ -88,7 +125,8 @@ export function buildCrawlPlan(hrefs: string[], opts: { adminPath: string; exclu
  */
 export function resolveEditStep(step: CrawlStep, firstRecordHref: string | null): CrawlStep | null {
   if (!firstRecordHref) return null
-  return { ...step, path: firstRecordHref }
+  // el href de la fila viene ABSOLUTO (como los del sidebar): al plan entra solo el path
+  return { ...step, path: pathOf(firstRecordHref) }
 }
 
 /**

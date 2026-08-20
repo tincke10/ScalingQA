@@ -85,6 +85,13 @@ export type Snapshot = {
  * concreto. Sin esto, cada Resource re-seedeado produciría una `missing` + una `new` — ruido
  * total. El id concreto queda en `url` para que el humano pueda abrir la página.
  */
+/**
+ * Nombre PLANO del screenshot: `page:/admin` → `page--admin--light.png`. Sin esto la barra del
+ * path creaba un subdirectorio `page--/` (hallazgo de la primera corrida real).
+ */
+export const screenshotFileName = (key: string, theme: Theme): string =>
+  `${key.replace(/[:/\\]+/g, '--').replace(/^-+|-+$/g, '')}--${theme}.png`
+
 export const pageKey = (p: { kind: PageKind; resource: string | null; path: string }): string =>
   p.kind === 'edit'
     ? `edit:${p.resource}`

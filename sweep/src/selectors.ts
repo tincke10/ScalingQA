@@ -42,7 +42,9 @@ export const V4 = {
     label: '.fi-fo-field-label-content',
     required: 'sup.fi-fo-field-label-required-mark',
     /** el wrapper NO expone el nombre: sale del input de adentro */
-    input: '[wire\\:model], [name], input, select, textarea',
+    /** `[wire\:model]` no matchea `wire:model.blur` (CSS no hace prefijo de atributo): por eso
+     *  también se buscan los controles en sí. El toggle de Filament es un button[role=switch]. */
+    input: '[wire\\:model], [name], input, select, textarea, button[role="switch"], [role="combobox"]',
     repeaterItem: 'li.fi-fo-repeater-item',
     builderItem: 'li.fi-fo-builder-item',
     builderBlockLabel: '.fi-fo-builder-item-header-label',

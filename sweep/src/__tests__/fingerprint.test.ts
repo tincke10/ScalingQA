@@ -38,6 +38,48 @@ describe('buildFormFingerprint — name', () => {
   })
 })
 
+/**
+ * HALLAZGO DE FASE 2 (DOM real de Filament 4 en prolicht): el input trae `wire:model.blur`
+ * o `wire:model.live` (con modificador — `getAttribute('wire:model')` da null), el `id` es
+ * `form.<campo>`, y la clase de tipo (`fi-fo-text-input`) vive en un div intermedio
+ * (`div.fi-input-wrp.fi-fo-text-input`), NI en el wrapper NI en el input. El snapshot real
+ * salió con todos los campos `unnamed#N` / `unknown`: un fingerprint así no detecta nada.
+ */
+describe('buildFormFingerprint — markup real de Filament 4', () => {
+  it('saca el nombre de wire:model CON modificador (.blur / .live)', () => {
+    const [blur, live] = buildFormFingerprint([
+      node({ inputAttrs: [['id', 'form.name'], ['type', 'text'], ['wire:model.blur', 'data.name']] }),
+      node({ inputAttrs: [['wire:model.live', 'data.slug']] }),
+    ])
+    expect(blur.name).toBe('name')
+    expect(live.name).toBe('slug')
+  })
+
+  it('sin wire:model ni name, cae al id `form.<campo>`', () => {
+    const [field] = buildFormFingerprint([node({ inputAttrs: [['id', 'form.api_id']] })])
+    expect(field.name).toBe('api_id')
+  })
+
+  it('el tipo sale de las clases del COMPONENTE (div intermedio), no del input', () => {
+    const [field] = buildFormFingerprint([
+      node({ componentClasses: ['fi-input-wrp', 'fi-fo-text-input'], inputClasses: ['fi-input'] }),
+    ])
+    expect(field.type).toBe('text-input')
+  })
+
+  it('las clases del componente mandan sobre las del input anidado (repeater con un text-input adentro)', () => {
+    const [field] = buildFormFingerprint([
+      node({ componentClasses: ['fi-fo-repeater'], inputClasses: ['fi-fo-text-input'], itemCount: 2 }),
+    ])
+    expect(field.type).toBe('repeater')
+  })
+
+  it('el viejo wireModel explícito sigue teniendo prioridad (compatibilidad con snapshots previos)', () => {
+    const [field] = buildFormFingerprint([node({ wireModel: 'data.title', inputAttrs: [['id', 'form.other']] })])
+    expect(field.name).toBe('title')
+  })
+})
+
 describe('buildFormFingerprint — type', () => {
   it('se resuelve por la primera clase fi-fo-* que matchea', () => {
     const [field] = buildFormFingerprint([node({ inputClasses: ['fi-fo-field-wrp', 'fi-fo-select'] })])
